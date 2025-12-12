@@ -5,31 +5,41 @@
  */
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize GoogleGenAI with Vite runtime API key (import.meta.env.VITE_API_KEY)
-// Avoid using process.env in client-side code.
-// Read VITE_API_KEY from Vite's import.meta.env. Use a typed-safe access to avoid TS errors.
-const VITE_API_KEY = (import.meta as any).env?.VITE_API_KEY as string || '';
-const genAI = new GoogleGenAI({ apiKey: VITE_API_KEY });
-if (!VITE_API_KEY) {
-  console.warn('VITE_API_KEY is missing; AI calls will fail until you set it in .env.local');
+// Read the Vite-provided API key at runtime. Keep access via import.meta.env to avoid bundling secrets.
+const VITE_API_KEY = (import.meta as any).env?.VITE_API_KEY as string | undefined;
+
+let genAI: any | null = null;
+if (VITE_API_KEY) {
+  genAI = new GoogleGenAI({ apiKey: VITE_API_KEY });
+  // Do not log the key. Small developer hint only.
+  console.log('AI Service: API key found, client initialized.');
+} else {
+  console.warn('AI Service: VITE_API_KEY not set. getPlasticAnalysis will return an error until the key is provided.');
 }
 
-// Simple confirmation log for developer visibility (do not print keys)
-console.log("AI Service Connected");
-
 /**
- * Send a prompt to the Google GenAI model and return the generated text.
+ * Exported function: getPlasticAnalysis
+ * - prompt: user-entered prompt string
+ * - returns: generated text or an error message
  */
 export async function getPlasticAnalysis(prompt: string): Promise<string> {
-  console.log('getPlasticAnalysis called');
+  if (!prompt || !prompt.trim()) return 'Error: empty prompt.';
+  if (!genAI) return 'Error: AI key not configured.';
+
   try {
+    const systemInstruction = `You are an expert environmental impact analyst. Answer concisely in a data-first, urgent and empowering tone. Use short, factual lines and include: Object, Decomposition (years), Key impacts (2-3 short bullets with data when available), and a Recommended alternative.`;
+
+    const fullPrompt = `${systemInstruction}\nUser Query: ${prompt}\nReturn only the concise analysis.`;
+
     const response = await genAI.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt,
+      contents: fullPrompt,
     });
-    return response.text || '';
-  } catch (error) {
-    console.error('Gemini API Error:', error);
+
+    // response.text should contain the model output; fall back to empty string.
+    return (response && response.text) ? response.text : 'Error: empty response from AI.';
+  } catch (err) {
+    console.error('getPlasticAnalysis error:', err);
     return 'Error: could not retrieve AI response.';
   }
 }
