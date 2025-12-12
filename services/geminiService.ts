@@ -7,6 +7,10 @@ if (!apiKey) {
 }
 
 const ai = new GoogleGenAI({ apiKey });
+if (apiKey) {
+  // Lightweight confirmation log (do not print the key itself)
+  console.log('GoogleGenAI client initialized (VITE_API_KEY present)');
+}
 
 /**
  * getPlasticAnalysis: simple wrapper to send a prompt to the AI and return the response text.
@@ -14,13 +18,15 @@ const ai = new GoogleGenAI({ apiKey });
  * @returns response text or an error message
  */
 export async function getPlasticAnalysis(prompt: string): Promise<string> {
-  console.log('getPlasticAnalysis called');
+  console.log('getPlasticAnalysis called with prompt:', prompt);
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
-    return response.text || '';
+    const text = response.text || '';
+    console.log('getPlasticAnalysis received response (truncated):', text.slice(0, 200));
+    return text;
   } catch (error) {
     console.error('Gemini API Error:', error);
     return 'Error: could not retrieve AI response.';
