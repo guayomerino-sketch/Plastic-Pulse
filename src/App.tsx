@@ -5,6 +5,8 @@ import { World3D, isWebGLAvailable } from './world/World3D';
 import { Music } from './audio/music';
 import { GOODALL_QUOTE, HOPEFUL_LINES, SONG, SORROW_LINES, currentProblem } from './data/content';
 import { HealthMeter, Icon } from './components/ui';
+import { specimenById } from './data/specimens';
+import { contribute } from './services/sharedGoal';
 import Pulse from './screens/Pulse';
 import Scan from './screens/Scan';
 import Lab from './screens/Lab';
@@ -86,6 +88,7 @@ export default function App() {
 
   const onChoice = (specimenId: string, action: ChoiceAction) => {
     dispatch({ type: 'log', specimenId, action });
+    if (action !== 'use') contribute(specimenById(specimenId).massGrams ?? 0).catch(() => { /* offline: the choice still counts locally */ });
     const w = worldRef.current;
     if (action === 'use') {
       w?.pollute();

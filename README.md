@@ -10,6 +10,12 @@ Opening quote: Jane Goodall.
 1. Install Node.js (LTS) from nodejs.org.
 2. In this folder: `npm install`
 3. `npm run dev`, then open the address it prints. To try it on your phone, run `npm run dev -- --host` and open the "Network" address on a phone on the same Wi-Fi.
+4. To test the shared goal without touching the live project: `npm run dev:emulators` (needs Java and the Firebase CLI). It runs the app against local Firebase emulators.
+
+## Firebase
+
+- Project: PlasticPulse (`plasticpulse-a921c`). Players sign in anonymously: no name or email.
+- Deploy the database rules: `firebase deploy --only firestore:rules --project plasticpulse-a921c`
 
 ## How the game works
 
@@ -31,6 +37,8 @@ Ranks: Observer → Field Researcher → Analyst (needs a finished Lab Challenge
 - `src/data/content.ts`: challenges, weekly problems, ranks, song lines, quote
 - `src/screens/*`: the five screens
 - `src/services/scanner.ts`: talks to the scanner server (Phase 2)
+- `src/services/firebase.ts`, `src/services/sharedGoal.ts`: sign-in and the live weekly shared goal
+- `firestore.rules`: who can read and write what in the database
 
 ## Rules we keep
 

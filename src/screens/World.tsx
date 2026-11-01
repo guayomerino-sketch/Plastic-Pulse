@@ -1,23 +1,27 @@
 import React from 'react';
-import { GOODALL_QUOTE, RANKS, SHARED_GOAL_SAMPLE } from '../data/content';
+import { GOODALL_QUOTE, RANKS, SHARED_GOAL } from '../data/content';
 import { impactFor, rankFor, useGame } from '../game/store';
+import { useSharedGoal } from '../services/sharedGoal';
+
+const mass = (g: number) => (g >= 1_000_000 ? `${(g / 1_000_000).toFixed(1)} t` : g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${Math.round(g)} g`);
 
 export default function World() {
   const { state } = useGame();
   const impact = impactFor(state);
   const rank = rankFor(state);
-  const g = SHARED_GOAL_SAMPLE;
-  const pct = Math.round((g.currentKg / g.targetKg) * 100);
+  const goal = useSharedGoal();
+  const live = goal.state === 'live' ? goal : null;
+  const pct = live ? Math.min(100, Math.round((live.grams / live.targetGrams) * 100)) : 0;
 
   return (
     <div className="bottom-dock">
       <section className="glass panel" aria-label="Shared goal">
         <div className="label">This week · one shared goal</div>
-        <div className="title">{g.label}</div>
+        <div className="title">{SHARED_GOAL.label}</div>
         <div className="bar thick"><i className="tone-good" style={{ width: `${pct}%` }} /></div>
         <div className="row">
-          <span className="label green">{(g.currentKg / 1000).toFixed(1)} t refused</span>
-          <span className="label">Your part: <b className="strong">{impact.gramsAvoided} g</b> · {impact.refused + impact.reused} choices</span>
+          <span className="label green">{live ? `${mass(live.grams)} refused together` : goal.state === 'connecting' ? 'Connecting…' : 'Offline'}</span>
+          <span className="label">Your part: <b className="strong">{mass(live ? live.mine : 0)}</b> this week · {mass(impact.gramsAvoided)} all time</span>
         </div>
         <div className="path" aria-label={`Rank: ${rank.current.name}`}>
           {RANKS.map((r, i) => (
@@ -27,7 +31,8 @@ export default function World() {
           ))}
         </div>
         <blockquote className="quote-sm">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
-        {g.isSample && <div className="tag">EACH LIGHT IS A COMMUNITY OF PLAYERS · SAMPLE DATA UNTIL THE NEXT UPDATE</div>}
+        {goal.state === 'offline' && <div className="tag">The shared goal needs a connection. Your choices still count on this device.</div>}
+        <div className="tag">Each light on Earth is a community of players · city lights are sample data for now</div>
       </section>
     </div>
   );

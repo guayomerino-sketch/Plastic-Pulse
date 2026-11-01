@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Plastic Pulse. Everything is closed unless a rule below opens it.
+// Players are signed in anonymously (no name, no email).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // Keep in sync with src/services/sharedGoal.ts and src/data/content.ts.
+    function maxGramsPerChoice() { return 50; }
+    function targetGrams() { return 50000; }
+
+    function validDelta(d) { return d is number && d > 0 && d <= maxGramsPerChoice(); }
+
+    // Weekly shared goal: goals/{week}, week like "2026-W44".
+    match /goals/{week} {
+      function goalPath() { return /databases/$(database)/documents/goals/$(week); }
+      function playerPath() { return /databases/$(database)/documents/goals/$(week)/players/$(request.auth.uid); }
+      function gramsBefore(path) { return exists(path) ? get(path).data.grams : 0; }
+      // The player's own record must grow by the same amount in the same batch.
+      function playerGrewBy(d) { return getAfter(playerPath()).data.grams - gramsBefore(playerPath()) == d; }
+
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && week.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['grams', 'targetGrams'])
+        && request.resource.data.targetGrams == targetGrams()
+        && validDelta(request.resource.data.grams)
+        && playerGrewBy(request.resource.data.grams);
+
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grams'])
+        && validDelta(request.resource.data.grams - resource.data.grams)
+        && playerGrewBy(request.resource.data.grams - resource.data.grams);
+
+      // One player's part of the week. Only that player can see it: no public individual rankings.
+      match /players/{uid} {
+        function playerDelta() {
+          return request.resource.data.grams - (resource == null ? 0 : resource.data.grams);
+        }
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['grams'])
+          && validDelta(playerDelta())
+          && getAfter(goalPath()).data.grams - gramsBefore(goalPath()) == playerDelta();
+      }
+    }
+  }
+}

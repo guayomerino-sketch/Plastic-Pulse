@@ -84,5 +84,6 @@ export const EXAMPLE_IDEAS: Idea[] = [
   { id: 'ex3', problemId: 'caps', title: 'Swap sauce packets for pump stations', problem: 'Packets can’t be recycled and end up as litter.', idea: 'Ask the cafeteria to try pumps for one month and measure waste.', evidence: 'Example: in a survey of 80 students, 71% said they would use pumps.', createdAt: 0, mine: false, votes: 61, example: true },
 ];
 
-// Shared-goal numbers are placeholders until the community backend exists (Phase 2).
-export const SHARED_GOAL_SAMPLE = { label: 'Refuse 50 tonnes of plastic together', targetKg: 50000, currentKg: 34100, isSample: true };
+// The weekly shared goal. Live totals come from Firestore (src/services/sharedGoal.ts).
+// targetGrams must match firestore.rules.
+export const SHARED_GOAL = { label: 'Refuse 50 kg of plastic together', targetGrams: 50000 };
