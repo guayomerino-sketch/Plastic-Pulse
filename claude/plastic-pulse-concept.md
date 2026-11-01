@@ -23,7 +23,7 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 2. Firebase foundation (on `game-phase-2`):
    - [x] Firebase SDK, loaded lazily (`src/services/firebase.ts`), anonymous sign-in.
    - [x] Live weekly shared goal (`src/services/sharedGoal.ts`, World screen), rules + emulator tests.
-   - [ ] Enable Anonymous sign-in in the Firebase console, deploy `firestore.rules`.
+   - [x] Anonymous sign-in enabled (auto clean-up off, so players keep their id), `firestore.rules` deployed. Checked live: sign-in and the goal read work.
    - [ ] Optional Google sign-in that upgrades the anonymous account, and cloud save of progress.
 3. Country ranking (countries only, never individuals) and real city lights on the Earth view.
 4. Community ideas and voting in the Solution Lab, with moderation before ideas go public (young players).
