@@ -1,13 +1,12 @@
 import React from 'react';
 import { GOODALL_QUOTE, RANKS, SHARED_GOAL } from '../data/content';
-import { impactFor, rankFor, useGame } from '../game/store';
+import { rankFor, useGame } from '../game/store';
 import { useSharedGoal } from '../services/sharedGoal';
 
 const mass = (g: number) => (g >= 1_000_000 ? `${(g / 1_000_000).toFixed(1)} t` : g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${Math.round(g)} g`);
 
-export default function World() {
+export default function World({ onFeedback }: { onFeedback: () => void }) {
   const { state } = useGame();
-  const impact = impactFor(state);
   const rank = rankFor(state);
   const goal = useSharedGoal();
   const live = goal.state === 'live' ? goal : null;
@@ -21,7 +20,7 @@ export default function World() {
         <div className="bar thick"><i className="tone-good" style={{ width: `${pct}%` }} /></div>
         <div className="row">
           <span className="label green">{live ? `${mass(live.grams)} refused together` : goal.state === 'connecting' ? 'Connecting…' : 'Offline'}</span>
-          <span className="label">Your part: <b className="strong">{mass(live ? live.mine : 0)}</b> this week · {mass(impact.gramsAvoided)} all time</span>
+          <span className="label">You: <b className="strong">{mass(live ? live.mine : 0)}</b></span>
         </div>
         <div className="path" aria-label={`Rank: ${rank.current.name}`}>
           {RANKS.map((r, i) => (
@@ -33,6 +32,7 @@ export default function World() {
         <blockquote className="quote-sm">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
         {goal.state === 'offline' && <div className="tag">The shared goal needs a connection. Your choices still count on this device.</div>}
         <div className="tag">Each light on Earth is a community of players · city lights are sample data for now</div>
+        <button className="btn ghost-violet" onClick={onFeedback}>Tell us what you think</button>
       </section>
     </div>
   );

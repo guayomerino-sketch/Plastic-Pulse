@@ -86,4 +86,7 @@ export const EXAMPLE_IDEAS: Idea[] = [
 
 // The weekly shared goal. Live totals come from Firestore (src/services/sharedGoal.ts).
 // targetGrams must match firestore.rules.
-export const SHARED_GOAL = { label: 'Refuse 50 kg of plastic together', targetGrams: 50000 };
+// Pilot size: about what 10 players refuse in a week. Raise it as more people join.
+export const SHARED_GOAL = { label: 'Refuse 2 kg of plastic together', targetGrams: 2000 };
+
+export const PRIVACY_NOTE = 'We never ask for your name or email. Your choices are saved anonymously.';

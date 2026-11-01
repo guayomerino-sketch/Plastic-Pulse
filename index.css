@@ -215,3 +215,9 @@ textarea, input { width: 100%; margin-top: 6px; background: rgba(0, 0, 0, 0.3); 
   .enter, .laser, .specimen { animation: none; }
   .lyric, .veil { transition: none; }
 }
+
+/* feedback */
+.choice-set { border: 0; margin: 4px 0 0; padding: 0; }
+.choice-set legend { padding: 0; margin: 6px 0 8px; font: 600 12px var(--display); color: var(--ink-strong); }
+.choice-set .btn { flex: 1; }
+.warn-text { color: #fda4af; }

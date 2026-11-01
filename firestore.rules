@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // Keep in sync with src/services/sharedGoal.ts and src/data/content.ts.
     function maxGramsPerChoice() { return 50; }
-    function targetGrams() { return 50000; }
+    function targetGrams() { return 2000; }
 
     function validDelta(d) { return d is number && d > 0 && d <= maxGramsPerChoice(); }
 
@@ -46,6 +46,19 @@ service cloud.firestore {
           && validDelta(playerDelta())
           && getAfter(goalPath()).data.grams - gramsBefore(goalPath()) == playerDelta();
       }
+    }
+
+    // Pilot feedback: players can add, nobody can read or change it from the app.
+    // Read it in the Firebase console. Keep FEEDBACK_MAX in sync with src/services/feedback.ts.
+    match /feedback/{id} {
+      function shortText(t) { return t is string && t.size() <= 1000; }
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'liked', 'confusing', 'comeBack', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && shortText(request.resource.data.liked)
+        && shortText(request.resource.data.confusing)
+        && request.resource.data.comeBack in ['yes', 'maybe', 'no', '']
+        && request.resource.data.createdAt == request.time;
     }
   }
 }

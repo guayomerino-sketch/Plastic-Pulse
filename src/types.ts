@@ -2,7 +2,7 @@
 
 export type ChoiceAction = 'refuse' | 'reuse' | 'use';
 
-export type ScreenId = 'pulse' | 'scan' | 'lab' | 'solutions' | 'world';
+export type ScreenId = 'pulse' | 'scan' | 'lab' | 'solutions' | 'world' | 'feedback';
 
 export type ThreatLevel = 'Moderate' | 'High' | 'Severe';
 

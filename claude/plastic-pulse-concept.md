@@ -32,9 +32,17 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 7. Class codes for schools.
 8. Phase 3: Android app (Capacitor), Google Play. Phase 4: sculpted Guardian, logo, more content.
 
+## Pilot (started November 2026)
+
+- 5–10 players aged 13+, known to Eduardo or a teacher, with a parent or teacher aware. One week, at least one budget Android phone.
+- Watch 2–3 people play the first time without helping.
+- Feedback: in-app form (World screen → "Tell us what you think"), saved to Firestore `feedback`.
+  Read it in the Firebase console → Firestore → feedback. Players can add but never read it.
+- After the week, pick the next feature from what players said.
+
 ## Decisions so far
 
-- The shared goal starts at 50 kg per week (`SHARED_GOAL` in `content.ts`, `targetGrams()` in `firestore.rules`).
-  The Phase 1 prototype showed 50 t as sample data, which is too far off for a new game.
+- The shared goal is 2 kg per week for the pilot (`SHARED_GOAL` in `content.ts`, `targetGrams()` in `firestore.rules`;
+  change both and redeploy the rules). The Phase 1 prototype showed 50 t as sample data, far out of reach for a new game.
 - One choice can add at most 50 g to the shared goal (`MAX_GRAMS_PER_CHOICE`). Grams come only from `specimens.ts`.
 - Each player's weekly part is readable only by that player.

@@ -3,7 +3,7 @@ import type { ChoiceAction, ScreenId } from './types';
 import { useGame, rankFor } from './game/store';
 import { World3D, isWebGLAvailable } from './world/World3D';
 import { Music } from './audio/music';
-import { GOODALL_QUOTE, HOPEFUL_LINES, SONG, SORROW_LINES, currentProblem } from './data/content';
+import { GOODALL_QUOTE, HOPEFUL_LINES, PRIVACY_NOTE, SONG, SORROW_LINES, currentProblem } from './data/content';
 import { HealthMeter, Icon } from './components/ui';
 import { specimenById } from './data/specimens';
 import { contribute } from './services/sharedGoal';
@@ -12,6 +12,7 @@ import Scan from './screens/Scan';
 import Lab from './screens/Lab';
 import Solutions from './screens/Solutions';
 import World from './screens/World';
+import Feedback from './screens/Feedback';
 
 const NAV: { id: ScreenId; label: string; icon: string }[] = [
   { id: 'pulse', label: 'Pulse', icon: 'pulse' },
@@ -131,7 +132,8 @@ export default function App() {
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
         {screen === 'solutions' && <Solutions />}
-        {screen === 'world' && <World />}
+        {screen === 'world' && <World onFeedback={() => go('feedback')} />}
+        {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
       </main>
 
       <nav className="nav glass" aria-label="Main">
@@ -154,6 +156,7 @@ export default function App() {
             <blockquote className="quote">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
             <button className="enter" onClick={enter}>Enter the Biome</button>
             <div className="credit">Sound on · “{SONG.title}” by {SONG.credit}</div>
+            <div className="credit">{PRIVACY_NOTE}</div>
           </div>
         </div>
       )}
