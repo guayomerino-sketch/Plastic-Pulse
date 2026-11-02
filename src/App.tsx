@@ -13,12 +13,13 @@ import Lab from './screens/Lab';
 import Solutions from './screens/Solutions';
 import World from './screens/World';
 import Feedback from './screens/Feedback';
+import Book from './screens/Book';
 
 const NAV: { id: ScreenId; label: string; icon: string }[] = [
   { id: 'pulse', label: 'Pulse', icon: 'pulse' },
   { id: 'scan', label: 'Scan', icon: 'scan' },
+  { id: 'book', label: 'Book', icon: 'book' },
   { id: 'lab', label: 'Lab', icon: 'lab' },
-  { id: 'solutions', label: 'Solutions', icon: 'bulb' },
   { id: 'world', label: 'World', icon: 'globe' },
 ];
 
@@ -36,6 +37,11 @@ export default function App() {
   const lastSorrow = useRef(0);
   const refusals = useRef(0);
   const webgl = useMemo(isWebGLAvailable, []);
+  // Budget phones keep the look but skip live blur behind the glass.
+  const lite = useMemo(() => {
+    const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    return (navigator.hardwareConcurrency || 8) <= 4 || (/Android/i.test(navigator.userAgent) && mem <= 4);
+  }, []);
   const rank = rankFor(state);
   const sceneScreen = screen === 'pulse' || screen === 'world';
 
@@ -109,7 +115,7 @@ export default function App() {
   const go = (id: ScreenId) => { setScreen(id); window.scrollTo?.(0, 0); };
 
   return (
-    <div className={`app ${sceneScreen ? 'scene' : 'reading'}`}>
+    <div className={`app ${sceneScreen ? 'scene' : 'reading'}${lite ? ' lite' : ''}${entered ? '' : ' entering'}`}>
       <div className="world" ref={hostRef} aria-hidden="true">{!webgl && <div className="world-fallback" />}</div>
       <div className="veil" />
 
@@ -117,14 +123,14 @@ export default function App() {
         <div className="row">
           <div className="mark">PLASTIC<span> PULSE</span></div>
           <div className="row tight">
-            <span className="label accent" title={rank.current.name}>{state.xp.toLocaleString()} XP</span>
-            {state.streakDays > 0 && <span className="label amber"><Icon name="flame" size={13} /> {state.streakDays}</span>}
+            <span className="xp-pill" title={rank.current.name}>{state.xp.toLocaleString()} XP</span>
+            {state.streakDays > 0 && <span className="xp-pill amber" aria-label={`${state.streakDays}-day streak`}><Icon name="flame" size={13} /> {state.streakDays}</span>}
             <button className={`iconbtn ${musicPlaying ? 'on' : ''}`} aria-pressed={musicPlaying} aria-label={musicPlaying ? 'Pause music' : `Play music: ${SONG.title}`} onClick={toggleMusic}>
               <Icon name="music" size={20} />
             </button>
           </div>
         </div>
-        {sceneScreen && <HealthMeter health={state.health} label={screen === 'world' ? 'My biome · shared on Earth' : `${rank.current.name} · biome health`} />}
+        {sceneScreen && <HealthMeter health={state.health} label={screen === 'world' ? 'On Earth' : rank.current.name} />}
       </header>
 
       <main className="content">
@@ -134,11 +140,12 @@ export default function App() {
         {screen === 'solutions' && <Solutions />}
         {screen === 'world' && <World onFeedback={() => go('feedback')} />}
         {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
+        {screen === 'book' && <Book onScan={() => { setScanId(null); go('scan'); }} />}
       </main>
 
       <nav className="nav glass" aria-label="Main">
         {NAV.map((n) => (
-          <button key={n.id} className={screen === n.id ? 'on' : ''} aria-current={screen === n.id ? 'page' : undefined} onClick={() => { if (n.id === 'scan') setScanId(null); go(n.id); }}>
+          <button key={n.id} className={screen === n.id ? `on${n.id === 'book' ? ' violet' : ''}` : ''} aria-current={screen === n.id ? 'page' : undefined} onClick={() => { if (n.id === 'scan') setScanId(null); go(n.id); }}>
             <Icon name={n.icon} />{n.label}
           </button>
         ))}
@@ -150,12 +157,13 @@ export default function App() {
 
       {!entered && (
         <div className="intro">
+          <div className="intro-status" aria-hidden="true"><span>Field lab · online</span><span>PP-01</span></div>
           <div className="intro-inner">
             <div className="label accent">A field lab for the living planet</div>
             <h1>PLASTIC<span> PULSE</span></h1>
             <blockquote className="quote">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
-            <button className="enter" onClick={enter}>Enter the Biome</button>
-            <div className="credit">Sound on · “{SONG.title}” by {SONG.credit}</div>
+            <button className="enter" onClick={enter}>Enter the Biome <Icon name="arrow" size={18} /></button>
+            <div className="credit">Sound on · instrumental · “{SONG.title}” by {SONG.credit}</div>
             <div className="credit">{PRIVACY_NOTE}</div>
           </div>
         </div>

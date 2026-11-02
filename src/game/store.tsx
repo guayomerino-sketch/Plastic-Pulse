@@ -21,6 +21,7 @@ export const initialState: GameState = {
   ideas: [],
   votedIdeaIds: [],
   musicOn: true,
+  studied: [],
 };
 
 export type Action =
@@ -32,6 +33,7 @@ export type Action =
   | { type: 'idea/add'; idea: Omit<Idea, 'id' | 'createdAt' | 'mine' | 'votes'> }
   | { type: 'idea/vote'; id: string }
   | { type: 'music'; on: boolean }
+  | { type: 'study'; specimenId: string }
   | { type: 'reset' };
 
 function touchStreak(s: GameState): GameState {
@@ -87,6 +89,8 @@ export function reducer(s: GameState, a: Action): GameState {
     }
     case 'music':
       return { ...s, musicOn: a.on };
+    case 'study':
+      return s.studied.includes(a.specimenId) ? s : { ...s, studied: [...s.studied, a.specimenId] };
     case 'reset':
       return initialState;
   }

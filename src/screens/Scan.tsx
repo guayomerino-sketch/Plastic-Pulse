@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { SPECIMENS, specimenById } from '../data/specimens';
 import SpecimenCard from '../components/SpecimenCard';
 import { Icon } from '../components/ui';
+import { useGame } from '../game/store';
 import { identifyPlastic, ScannerNotConfigured, scannerEndpoint } from '../services/scanner';
 
 export default function Scan({ initialId, onToLab }: { initialId?: string | null; onToLab: () => void }) {
@@ -10,6 +11,10 @@ export default function Scan({ initialId, onToLab }: { initialId?: string | null
   const [status, setStatus] = useState<'idle' | 'scanning' | 'error'>('idle');
   const [note, setNote] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
+  const { dispatch } = useGame();
+
+  // Opening a specimen file adds it to the Specimen Book.
+  useEffect(() => { if (selected) dispatch({ type: 'study', specimenId: selected }); }, [selected, dispatch]);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

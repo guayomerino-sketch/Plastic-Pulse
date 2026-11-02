@@ -2,7 +2,7 @@
 
 export type ChoiceAction = 'refuse' | 'reuse' | 'use';
 
-export type ScreenId = 'pulse' | 'scan' | 'lab' | 'solutions' | 'world' | 'feedback';
+export type ScreenId = 'pulse' | 'scan' | 'lab' | 'solutions' | 'world' | 'feedback' | 'book';
 
 export type ThreatLevel = 'Moderate' | 'High' | 'Severe';
 
@@ -90,4 +90,5 @@ export interface GameState {
   ideas: Idea[];
   votedIdeaIds: string[];
   musicOn: boolean;
+  studied: string[]; // specimens opened in Scan or the Book; logged ones count as discovered too
 }
