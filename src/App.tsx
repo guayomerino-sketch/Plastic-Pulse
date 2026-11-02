@@ -7,6 +7,7 @@ import { GOODALL_QUOTE, HOPEFUL_LINES, PRIVACY_NOTE, SONG, SORROW_LINES, current
 import { HealthMeter, Icon } from './components/ui';
 import { DISCOVERY_XP, specimenById } from './data/specimens';
 import { contribute } from './services/sharedGoal';
+import type { Vitals } from './vitals/types';
 import Pulse from './screens/Pulse';
 import Scan from './screens/Scan';
 import Lab from './screens/Lab';
@@ -115,6 +116,18 @@ export default function App() {
 
   const go = (id: ScreenId) => { setScreen(id); window.scrollTo?.(0, 0); };
 
+  // Earth's live vital signs on the globe.
+  const focusEarth = useCallback((p: [number, number] | null) => worldRef.current?.focus(p ? p[0] : null, p ? p[1] : 0), []);
+  const zoomOut = useCallback(() => worldRef.current?.zoomOut(), []);
+  const showVitals = useCallback((v: Vitals) => worldRef.current?.setVitals({
+    arcticKm2: v.arctic.status === 'ok' ? v.arctic.extent : null,
+    arcticNormalKm2: v.arctic.status === 'ok' ? v.arctic.normal : null,
+    arcticRatio: v.arctic.status === 'ok' ? v.arctic.extent / v.arctic.normal : null,
+    reef: v.reef.status === 'ok' ? v.reef.stations : null,
+    amazonRatio: v.amazon.status === 'ok' && v.amazon.km2YearAgo > 0 ? v.amazon.km2 / v.amazon.km2YearAgo : null,
+    co2: v.co2.status === 'ok',
+  }), []);
+
   // First discovery: show the reveal for a few seconds.
   const found = state.discovery ? specimenById(state.discovery.specimenId) : null;
   useEffect(() => {
@@ -151,7 +164,7 @@ export default function App() {
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
         {screen === 'solutions' && <Solutions />}
-        {screen === 'world' && <World onFeedback={() => go('feedback')} />}
+        {screen === 'world' && <World onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
         {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
         {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
       </main>

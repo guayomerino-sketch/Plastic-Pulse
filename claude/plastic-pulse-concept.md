@@ -29,7 +29,8 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
    - [x] Book tab, 3D hologram for every specimen, rarity (Common / Hidden / Rare), sets, first-discovery reveal and bonus XP.
    - [x] Batch 2: 8 more sourced plastics (15 total). They have no sourced mass yet, so they add 0 g to the shared goal.
    - [ ] Batch 3: more specimens; sourced typical masses so new items count toward the goal.
-   - [ ] Google Earth-style globe: relief, ocean glint, clouds, blue atmosphere, pinch-zoom, fly to a city.
+   - [x] Google Earth-style globe: relief, ocean glint, clouds, blue atmosphere, pinch-zoom, fly-to, zoom-out to a pale blue dot.
+   - [x] Earth's vital signs, live: CO₂ (NOAA Mauna Loa), Arctic sea ice (NSIDC v4), Great Barrier Reef bleaching alerts (NOAA Coral Reef Watch), Amazon deforestation alerts (INPE DETER). Served by `api/vitals.ts` (Vercel function, cached 6 h); logic in `server/vitals.ts`. Climate Reanalyzer blocks automated access, so it is not used.
 4. Country ranking (countries only, never individuals) and real city lights on the Earth view.
 5. Community ideas and voting in the Solution Lab, with moderation before ideas go public (young players).
 6. Scanner: a server function that holds the Gemini key (needs the Blaze plan, or another host).

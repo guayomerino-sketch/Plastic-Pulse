@@ -61,6 +61,7 @@ export class World3D {
   private fpsT = performance.now();
   private adapted = false;
   private fly: THREE.Vector3 | null = null;
+  private focused = false;
   private onResize = () => this.resize();
 
   // state
@@ -118,6 +119,9 @@ export class World3D {
     const pos = v === 'biome' ? new THREE.Vector3(0, 4.8, 18) : new THREE.Vector3(0, 3, 17);
     this.controls.target.set(0, v === 'biome' ? 3 : 0, 0);
     this.controls.maxDistance = v === 'biome' ? 26 : 28;
+    this.controls.minDistance = v === 'biome' ? 8 : 6.4; // pinch in close to the surface on Earth
+    this.controls.maxPolarAngle = v === 'biome' ? 1.52 : Math.PI - 0.05;
+    this.focused = false; this.controls.autoRotate = true;
     this.camera.position.copy(pos.clone().multiplyScalar(1.5));
     this.fly = pos;
   }
@@ -450,50 +454,150 @@ export class World3D {
     const low = this.low, earth = this.earth, u = this.u;
     earth.add(this.makeStars(low ? 700 : 1500, sprite));
     const loader = new THREE.TextureLoader();
-    const day = loader.load('/textures/earth-day.jpg'), night = loader.load('/textures/earth-night.jpg');
+    const day = loader.load('/textures/earth-day.jpg'), night = loader.load('/textures/earth-night.jpg'), relief = loader.load('/textures/earth-topology.png');
     day.colorSpace = night.colorSpace = THREE.SRGBColorSpace;
+    for (const t of [day, night, relief]) t.anisotropy = low ? 1 : 4;
     const sunDir = new THREE.Vector3(-1, 0.35, 0.6).normalize();
+    // Google Earth-style surface: relief shading from the topology map, sun glint on the oceans,
+    // city lights on the night side and a blue atmospheric rim.
     const earthMat = new THREE.ShaderMaterial({
-      uniforms: { uDay: { value: day }, uNight: { value: night }, uSun: { value: sunDir } },
+      uniforms: { uDay: { value: day }, uNight: { value: night }, uRelief: { value: relief }, uSun: { value: sunDir } },
       vertexShader: `varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv = uv; vN = normalize(mat3(modelMatrix)*normal);
         vec4 w = modelMatrix*vec4(position,1.); vV = normalize(cameraPosition - w.xyz); gl_Position = projectionMatrix*viewMatrix*w; }`,
-      fragmentShader: `uniform sampler2D uDay,uNight; uniform vec3 uSun; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
-        void main(){ float l = dot(vN,uSun); float m = smoothstep(-.15,.3,l);
-          vec3 d = texture2D(uDay,vUv).rgb*(.15+max(l,0.)*1.1)*vec3(.85,1.,1.05);
-          vec3 n = texture2D(uNight,vUv).rgb*vec3(.5,1.3,1.4)*1.8;
-          vec3 col = mix(n,d,m);
-          float fr = pow(1.-max(dot(vN,vV),0.),3.); col += vec3(.1,.85,.8)*fr*.9;
-          gl_FragColor = vec4(col,1.); }`,
+      fragmentShader: `uniform sampler2D uDay,uNight,uRelief; uniform vec3 uSun; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
+        void main(){
+          vec3 n = normalize(vN);
+          // relief: tilt the normal along the height map's slope (east = T, north = B)
+          vec2 px = vec2(1./2048., 1./1024.);
+          float h0 = texture2D(uRelief, vUv).r;
+          float hx = texture2D(uRelief, vUv + vec2(px.x, 0.)).r - h0, hy = texture2D(uRelief, vUv + vec2(0., px.y)).r - h0;
+          vec3 T = normalize(cross(vec3(0.,1.,0.), n) + 1e-4), B = cross(n, T);
+          vec3 nb = normalize(n - (T*hx + B*hy)*6.);
+          vec3 dayC = texture2D(uDay, vUv).rgb;
+          float water = smoothstep(.02, .1, dayC.b - max(dayC.r, dayC.g*.9)) * (1. - h0*4.);
+          float l = dot(nb, uSun), lw = dot(n, uSun);
+          float m = smoothstep(-.12, .25, lw);
+          vec3 d = dayC*(.08 + max(l,0.)*1.15);
+          vec3 hv = normalize(uSun + vV);
+          d += vec3(1., .93, .8)*pow(max(dot(n, hv), 0.), 60.)*water*1.1*step(0., lw);
+          vec3 nl = texture2D(uNight, vUv).rgb*vec3(1.2, 1., .75)*1.6*(1. - water);
+          vec3 col = mix(nl, d, m);
+          float fr = pow(1. - max(dot(n, vV), 0.), 3.);
+          col += vec3(.3, .6, 1.)*fr*(.25 + .75*smoothstep(-.3, .4, lw));
+          gl_FragColor = vec4(col, 1.); }`,
     });
     const globe = new THREE.Group(); earth.add(globe); u.globe = globe;
-    globe.add(new THREE.Mesh(new THREE.SphereGeometry(5, low ? 64 : 96, low ? 48 : 72), earthMat));
-    earth.add(new THREE.Mesh(new THREE.SphereGeometry(5.6, 64, 48), new THREE.ShaderMaterial({ side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    globe.add(new THREE.Mesh(new THREE.SphereGeometry(5, low ? 64 : 128, low ? 48 : 96), earthMat));
+
+    // Drifting clouds, generated with noise in the shader (no texture to download).
+    u.clouds = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uSun: { value: sunDir } }, transparent: true, depthWrite: false,
+      vertexShader: `varying vec3 vP; varying vec3 vN; void main(){ vP = position; vN = normalize(mat3(modelMatrix)*normal); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+      fragmentShader: `uniform float uTime; uniform vec3 uSun; varying vec3 vP; varying vec3 vN;
+        float h(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7)))*43758.5453); }
+        float n3(vec3 p){ vec3 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+          return mix(mix(mix(h(i), h(i+vec3(1,0,0)), f.x), mix(h(i+vec3(0,1,0)), h(i+vec3(1,1,0)), f.x), f.y),
+                     mix(mix(h(i+vec3(0,0,1)), h(i+vec3(1,0,1)), f.x), mix(h(i+vec3(0,1,1)), h(i+vec3(1,1,1)), f.x), f.y), f.z); }
+        void main(){ vec3 p = normalize(vP)*2.2 + vec3(uTime*.012, 0., uTime*.006);
+          float c = n3(p)*.5 + n3(p*2.1)*.27 + n3(p*4.3)*.15 + ${low ? '0.' : 'n3(p*8.7)*.08'};
+          float lat = abs(normalize(vP).y);
+          c = smoothstep(.52 - .06*sin(lat*9.), .78, c);
+          float l = smoothstep(-.15, .35, dot(normalize(vN), uSun));
+          gl_FragColor = vec4(vec3(.85 + .15*l)*(.15 + .85*l), c*.75); }`,
+    });
+    globe.add(new THREE.Mesh(new THREE.SphereGeometry(5.06, low ? 48 : 96, low ? 32 : 64), u.clouds));
+
+    // Blue atmosphere glow beyond the edge.
+    earth.add(new THREE.Mesh(new THREE.SphereGeometry(5.55, 64, 48), new THREE.ShaderMaterial({ side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix*normal); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-      fragmentShader: `varying vec3 vN; void main(){ float i = clamp(pow(max(0., .7 - dot(vN, vec3(0,0,1.))), 3.), 0., 1.); gl_FragColor = vec4(vec3(.15,.9,.85)*i*.9, i); }` })));
+      fragmentShader: `varying vec3 vN; void main(){ float i = clamp(pow(max(0., .72 - dot(vN, vec3(0,0,1.))), 2.6), 0., 1.); gl_FragColor = vec4(vec3(.32,.62,1.)*i*1.1, i); }` })));
+
     const ll = (lat: number, lng: number, r: number) => { const phi = ((90 - lat) * Math.PI) / 180, th = ((lng + 180) * Math.PI) / 180; return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)); };
+    u.ll = ll;
     // Sample community lights until Phase 2 brings real data. The first one is "home".
     const cities: [number, number, number][] = [[34.05, -118.24, 1.0], [19.43, -99.13, 0.8], [9.93, -84.08, 0.7], [14.6, 120.98, 0.85], [-1.29, 36.82, 0.65], [38.72, -9.14, 0.5], [-23.55, -46.63, 0.75], [51.5, -0.12, 0.7], [35.68, 139.69, 0.9], [28.7, 77.1, 0.8], [-33.87, 151.2, 0.55], [6.52, 3.38, 0.6], [40.71, -74.0, 0.85], [1.35, 103.82, 0.5]];
-    const beamMat = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
     u.beacons = []; const glowPts: number[] = [];
     cities.forEach(([la, lo, v], i) => {
-      const n = ll(la, lo, 1).normalize(); const h = 0.4 + v * 1.1;
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 1, 6), beamMat); m.position.copy(n.clone().multiplyScalar(5 + h / 2)); m.scale.y = h;
+      const n = ll(la, lo, 1).normalize(); const h = 0.25 + v * 0.6;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.04, 1, 6), beamMat); m.position.copy(n.clone().multiplyScalar(5 + h / 2)); m.scale.y = h;
       m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); globe.add(m);
       const tip = n.clone().multiplyScalar(5 + h); glowPts.push(tip.x, tip.y, tip.z); u.beacons.push({ m, n, base: h, home: i === 0 });
     });
     const gp = new THREE.BufferGeometry(); gp.setAttribute('position', new THREE.Float32BufferAttribute(glowPts, 3));
-    u.glowP = new THREE.Points(gp, new THREE.PointsMaterial({ size: 0.9, map: sprite, color: 0x99f6e4, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); globe.add(u.glowP);
+    u.glowP = new THREE.Points(gp, new THREE.PointsMaterial({ size: 0.6, map: sprite, color: 0x99f6e4, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); globe.add(u.glowP);
     u.arcs = [];
     [[0, 2], [2, 6], [3, 8], [4, 5], [12, 7], [9, 3], [1, 12], [10, 13]].forEach(([a, b]) => {
       const A = ll(cities[a][0], cities[a][1], 5.02), B = ll(cities[b][0], cities[b][1], 5.02);
       const mid = A.clone().add(B).multiplyScalar(0.5).normalize().multiplyScalar(5 + A.distanceTo(B) * 0.35);
       const curve = new THREE.QuadraticBezierCurve3(A, mid, B);
-      globe.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(48)), new THREE.LineBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending })));
-      const comet = new THREE.Sprite(new THREE.SpriteMaterial({ map: sprite, color: 0xccfbf1, blending: THREE.AdditiveBlending, depthWrite: false })); comet.scale.setScalar(0.45); globe.add(comet);
+      globe.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(48)), new THREE.LineBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending })));
+      const comet = new THREE.Sprite(new THREE.SpriteMaterial({ map: sprite, color: 0xccfbf1, blending: THREE.AdditiveBlending, depthWrite: false })); comet.scale.setScalar(0.35); globe.add(comet);
       u.arcs.push({ curve, comet, t: Math.random(), sp: rand(0.12, 0.25) });
     });
+
+    this.buildVitalMarkers(globe, sprite);
     globe.rotation.y = 1.9;
   }
+
+  /** Live vital signs drawn on the globe: Arctic ice, reef alert zones, the Amazon. Hidden until data arrives. */
+  private buildVitalMarkers(globe: THREE.Group, sprite: THREE.Texture) {
+    const u = this.u, ll = u.ll;
+    // Arctic: a soft white cap sized to today's extent, and a ring where the 1981–2010 normal would reach.
+    u.iceMat = new THREE.ShaderMaterial({
+      uniforms: { uEdge: { value: 0.25 } }, transparent: true, depthWrite: false,
+      vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+      fragmentShader: `uniform float uEdge; varying vec3 vP; void main(){ float a = acos(clamp(vP.y, -1., 1.));
+        float k = 1. - smoothstep(uEdge*.82, uEdge, a); gl_FragColor = vec4(vec3(.93,.97,1.), k*.82); }`,
+    });
+    u.ice = new THREE.Mesh(new THREE.SphereGeometry(5.03, 96, 24, 0, Math.PI * 2, 0, 0.6), u.iceMat); u.ice.visible = false; globe.add(u.ice);
+    u.iceNormal = new THREE.Mesh(new THREE.TorusGeometry(1, 0.012, 6, 128), new THREE.MeshBasicMaterial({ color: 0xffc566, transparent: true, opacity: 0.8 }));
+    u.iceNormal.rotation.x = Math.PI / 2; u.iceNormal.visible = false; globe.add(u.iceNormal);
+
+    // Great Barrier Reef zones and the Amazon: glowing points coloured by their reading.
+    u.reefPts = []; u.amazon = null;
+    const dot = (color: number, size: number) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: sprite, color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.setScalar(size); s.visible = false; globe.add(s); return s; };
+    for (let i = 0; i < 4; i++) u.reefPts.push(dot(0x3ee6c8, 0.7));
+    u.amazon = dot(0xffc566, 1.0);
+    u.amazon.position.copy(ll(-3.4, -62.2, 5.1));
+    u.co2 = dot(0x7ff3dc, 0.9); u.co2.position.copy(ll(19.54, -155.58, 5.1)); // Mauna Loa Observatory, Hawai‘i
+  }
+
+  /** Show live readings on the globe. Pass null for a vital that is unavailable. */
+  setVitals(v: { arcticRatio: number | null; arcticNormalKm2: number | null; arcticKm2: number | null; reef: { lat: number; lon: number; level: number }[] | null; amazonRatio: number | null; co2: boolean }) {
+    const u = this.u, ll = u.ll;
+    // Cap angle for an area A on a sphere of Earth's radius: A = 2πR²(1 − cos θ).
+    const capAngle = (km2: number) => Math.acos(1 - km2 / (2 * Math.PI * 6371 * 6371));
+    if (v.arcticKm2 && v.arcticNormalKm2) {
+      u.iceMat.uniforms.uEdge.value = capAngle(v.arcticKm2 * 1e6); u.ice.visible = true;
+      const a = capAngle(v.arcticNormalKm2 * 1e6); u.iceNormal.scale.set(5.04 * Math.sin(a), 5.04 * Math.sin(a), 1); u.iceNormal.position.y = 5.04 * Math.cos(a); u.iceNormal.visible = true;
+    }
+    const levelColor = [0x3ee6c8, 0xfff07a, 0xffc566, 0xff7a59, 0xe0245e];
+    (v.reef ?? []).forEach((s, i) => { const p = u.reefPts[i]; if (!p) return; p.position.copy(ll(s.lat, s.lon, 5.08)); p.material.color.setHex(levelColor[Math.min(4, Math.max(0, s.level))]); p.visible = true; });
+    if (v.amazonRatio != null) { u.amazon.visible = true; u.amazon.userData.base = 0.7 + Math.min(1.2, v.amazonRatio) * 0.5; }
+    u.co2.visible = v.co2;
+  }
+
+  /** Fly the camera to look straight down at a place (lat/lon), or back to the full globe with null. */
+  focus(lat: number | null, lon = 0) {
+    if (this.view !== 'earth') return;
+    const u = this.u;
+    if (lat === null) { this.focused = false; this.controls.autoRotate = true; this.fly = new THREE.Vector3(0, 3, 17); return; }
+    this.focused = true; this.controls.autoRotate = false;
+    u.globe.updateMatrixWorld(true);
+    const p = u.globe.localToWorld(u.ll(lat, lon, 1).normalize());
+    this.fly = p.normalize().multiplyScalar(11.5);
+  }
+
+  /** Pull far out until Earth is a small blue dot, then come home. */
+  zoomOut() {
+    if (this.view !== 'earth' || this.reduceMotion) return;
+    const dir = this.camera.position.clone().normalize();
+    this.controls.maxDistance = 200;
+    this.fly = dir.clone().multiplyScalar(170);
+    window.setTimeout(() => { this.fly = dir.clone().multiplyScalar(17); window.setTimeout(() => { this.controls.maxDistance = 28; }, 3000); }, 4200);
+  }
+
 
   private tick() {
     if (this.paused) return;
@@ -557,12 +661,15 @@ export class World3D {
       u.debris.instanceMatrix.needsUpdate = true;
       this.bloom.strength = 0.75 + 0.45 * h + this.burst * 0.6;
     } else {
-      u.globe.rotation.y += this.reduceMotion ? 0.0005 : 0.0015;
+      if (!this.focused) u.globe.rotation.y += this.reduceMotion ? 0.0005 : 0.0015;
+      u.clouds.uniforms.uTime.value = t;
+      if (u.amazon.visible) u.amazon.scale.setScalar(u.amazon.userData.base * (1 + 0.15 * Math.sin(t * 2.4)));
+      if (u.co2.visible) u.co2.scale.setScalar(0.9 * (1 + 0.25 * Math.sin(t * 0.9)));
       const hb = heartbeat(t);
       u.beacons.forEach((b: any, i: number) => { const k = b.base * (1 + 0.08 * Math.sin(t * 2 + i)); b.m.scale.y = k; b.m.position.copy(b.n).multiplyScalar(5 + k / 2); });
       u.glowP.material.size = 0.8 + 0.35 * hb;
       u.arcs.forEach((a: any) => { a.t = (a.t + a.sp * dt) % 1; a.comet.position.copy(a.curve.getPoint(a.t)); });
-      this.bloom.strength = 0.85;
+      this.bloom.strength = 0.6;
     }
     this.composer.render();
 
