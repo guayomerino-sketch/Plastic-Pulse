@@ -53,7 +53,7 @@ function Planet({ status, v, open, pick, onZoomOut }: { status: string; v: Vital
   const tiles: { id: VitalId; name: string; value: string; chip: string; tone: 'bad' | 'warn' | 'ok' } [] = [];
   if (v.co2.status === 'ok') tiles.push({ id: 'co2', name: 'CO₂ in the air', value: `${v.co2.ppm.toFixed(1)} ppm`, chip: `${signed(Math.round(v.co2.ppm - v.co2.ppm1990))} since 1990`, tone: 'bad' });
   if (v.arctic.status === 'ok') { const p = pct(v.arctic.extent, v.arctic.normal); tiles.push({ id: 'arctic', name: 'Arctic sea ice', value: `${v.arctic.extent.toFixed(2)} M km²`, chip: `${signed(p, '%')} vs normal`, tone: p < -5 ? 'bad' : p < 0 ? 'warn' : 'ok' }); }
-  if (v.reef.status === 'ok') tiles.push({ id: 'reef', name: 'Great Barrier Reef', value: REEF_LEVELS[v.reef.level], chip: `${signed(Number(v.reef.ssta.toFixed(1)), ' °C')} vs normal`, tone: v.reef.level >= 3 ? 'bad' : v.reef.level >= 1 || v.reef.ssta >= 1 ? 'warn' : 'ok' });
+  if (v.reef.status === 'ok') tiles.push({ id: 'reef', name: 'Great Barrier Reef', value: REEF_LEVELS[v.reef.level], chip: `${signed(Number(v.reef.ssta.toFixed(1)), ' °C')} vs normal`, tone: v.reef.level >= 3 ? 'bad' : v.reef.level >= 1 || v.reef.ssta >= 0.5 ? 'warn' : 'ok' });
   if (v.amazon.status === 'ok') { const p = pct(v.amazon.km2, v.amazon.km2YearAgo); tiles.push({ id: 'amazon', name: 'Amazon forest loss', value: `${Math.round(v.amazon.km2)} km²`, chip: `${signed(p, '%')} vs last year`, tone: p > 0 ? 'bad' : 'ok' }); }
 
   return (
