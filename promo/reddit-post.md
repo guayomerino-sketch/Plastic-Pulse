@@ -18,4 +18,4 @@ Hi! I'm the developer of **Plastic Pulse**, a small game about plastic and the h
 
 It's free, needs no sign-up and runs in your phone's browser: https://plastic-pulse.vercel.app
 
-It's a pilot, and I'd love honest feedback: what's confusing, what's fun, and would you open it again tomorrow? There's a "Tell us what you think" button on the World screen, or reply here.
+It's an early version and I'm still building it, so I'd love honest feedback: what's confusing, what's fun, and would you open it again tomorrow? There's a "Tell us what you think" button on the World screen, or reply here.
