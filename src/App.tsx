@@ -5,7 +5,7 @@ import { World3D, isWebGLAvailable } from './world/World3D';
 import { Music } from './audio/music';
 import { GOODALL_QUOTE, HOPEFUL_LINES, PRIVACY_NOTE, SONG, SORROW_LINES, currentProblem } from './data/content';
 import { HealthMeter, Icon } from './components/ui';
-import { specimenById } from './data/specimens';
+import { DISCOVERY_XP, specimenById } from './data/specimens';
 import { contribute } from './services/sharedGoal';
 import Pulse from './screens/Pulse';
 import Scan from './screens/Scan';
@@ -28,6 +28,7 @@ export default function App() {
   const [entered, setEntered] = useState(false);
   const [screen, setScreen] = useState<ScreenId>('pulse');
   const [scanId, setScanId] = useState<string | null>(null);
+  const [bookId, setBookId] = useState<string | null>(null);
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [lyric, setLyric] = useState<string | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -114,6 +115,18 @@ export default function App() {
 
   const go = (id: ScreenId) => { setScreen(id); window.scrollTo?.(0, 0); };
 
+  // First discovery: show the reveal for a few seconds.
+  const found = state.discovery ? specimenById(state.discovery.specimenId) : null;
+  useEffect(() => {
+    if (!state.discovery) return;
+    const t = window.setTimeout(() => dispatch({ type: 'discovery/clear' }), 5000);
+    return () => window.clearTimeout(t);
+  }, [state.discovery, dispatch]);
+  const openDiscovery = () => {
+    if (!found) return;
+    setBookId(found.id); dispatch({ type: 'discovery/clear' }); go('book');
+  };
+
   return (
     <div className={`app ${sceneScreen ? 'scene' : 'reading'}${lite ? ' lite' : ''}${entered ? '' : ' entering'}`}>
       <div className="world" ref={hostRef} aria-hidden="true">{!webgl && <div className="world-fallback" />}</div>
@@ -140,16 +153,27 @@ export default function App() {
         {screen === 'solutions' && <Solutions />}
         {screen === 'world' && <World onFeedback={() => go('feedback')} />}
         {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
-        {screen === 'book' && <Book onScan={() => { setScanId(null); go('scan'); }} />}
+        {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
       </main>
 
       <nav className="nav glass" aria-label="Main">
         {NAV.map((n) => (
-          <button key={n.id} className={screen === n.id ? `on${n.id === 'book' ? ' violet' : ''}` : ''} aria-current={screen === n.id ? 'page' : undefined} onClick={() => { if (n.id === 'scan') setScanId(null); go(n.id); }}>
+          <button key={n.id} className={screen === n.id ? `on${n.id === 'book' ? ' violet' : ''}` : ''} aria-current={screen === n.id ? 'page' : undefined} onClick={() => { if (n.id === 'scan') setScanId(null); if (n.id === 'book') setBookId(null); go(n.id); }}>
             <Icon name={n.icon} />{n.label}
           </button>
         ))}
       </nav>
+
+      {found && entered && (
+        <div className={`glass reveal r-${found.rarity.toLowerCase()}`} role="status">
+          <div className="reveal-orb" aria-hidden="true"><Icon name="book" size={24} /></div>
+          <div className="grow">
+            <div className="label">New specimen · {found.rarity === 'Hidden' ? 'hidden plastic' : found.rarity} · +{DISCOVERY_XP[found.rarity]} XP</div>
+            <div className="reveal-name">{found.name}</div>
+          </div>
+          <button className="btn primary" onClick={openDiscovery}>Open</button>
+        </div>
+      )}
 
       <p className={`lyric ${lyric ? 'show' : ''}`} aria-live="polite">
         {lyric}{lyric && <small>{SONG.title} · {SONG.credit}</small>}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Specimen } from '../types';
+import Hologram from './Hologram';
 
 /** Field-notebook "Specimen File" for one plastic. Every figure is sourced. */
 export default function SpecimenCard({ s, number }: { s: Specimen; number: number }) {
@@ -10,6 +11,8 @@ export default function SpecimenCard({ s, number }: { s: Specimen; number: numbe
         <span>SPECIMEN Nº {String(number).padStart(3, '0')}</span>
         <span>THREAT · {s.threat.toUpperCase()}</span>
       </div>
+      <Hologram shape={s.shape} rarity={s.rarity} label={s.name} />
+      <span className={`rarity r-${s.rarity.toLowerCase()}`}>{s.rarity === 'Hidden' ? 'Hidden plastic' : s.rarity}</span>
       <h2 className="sp-title">{s.name}</h2>
       <div className="sp-polymer">{s.polymer}</div>
       <div className="sp-scribble sp-resin">resin code {s.resinCode}</div>

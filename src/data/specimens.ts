@@ -1,4 +1,4 @@
-import type { Specimen } from '../types';
+import type { Rarity, SetId, Specimen } from '../types';
 
 // Sourced facts only. Persistence figures are estimates; we say so in the UI.
 // When a reliable figure does not exist, we write "Unknown" and turn it into an open question.
@@ -15,6 +15,10 @@ const OECD = {
 export const SPECIMENS: Specimen[] = [
   {
     id: 'pet-bottle',
+    short: 'Water bottle',
+    rarity: 'Common',
+    set: 'takeout',
+    shape: 'bottle',
     name: 'Single-use water bottle',
     polymer: 'Polyethylene terephthalate (PET)',
     resinCode: '#1',
@@ -31,6 +35,10 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: 'bottle-cap',
+    short: 'Bottle cap',
+    rarity: 'Common',
+    set: 'takeout',
+    shape: 'cap',
     name: 'Bottle cap',
     polymer: 'Polypropylene (PP) or HDPE',
     resinCode: '#5 / #2',
@@ -47,6 +55,10 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: 'grocery-bag',
+    short: 'Bag',
+    rarity: 'Common',
+    set: 'home',
+    shape: 'bag',
     name: 'Plastic grocery bag',
     polymer: 'High-density polyethylene (HDPE)',
     resinCode: '#2',
@@ -63,6 +75,10 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: 'straw',
+    short: 'Straw',
+    rarity: 'Common',
+    set: 'takeout',
+    shape: 'straw',
     name: 'Plastic straw',
     polymer: 'Polypropylene (PP)',
     resinCode: '#5',
@@ -79,6 +95,10 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: 'foam-cup',
+    short: 'Foam cup',
+    rarity: 'Common',
+    set: 'takeout',
+    shape: 'foam-cup',
     name: 'Foam cup',
     polymer: 'Expanded polystyrene (EPS)',
     resinCode: '#6',
@@ -95,6 +115,10 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: 'six-pack-rings',
+    short: 'Six-pack rings',
+    rarity: 'Rare',
+    set: 'ocean',
+    shape: 'rings',
     name: 'Six-pack rings',
     polymer: 'Low-density polyethylene (LDPE)',
     resinCode: '#4',
@@ -109,6 +133,10 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: 'ghost-net',
+    short: 'Ghost net',
+    rarity: 'Rare',
+    set: 'ocean',
+    shape: 'net',
     name: 'Fishing line & ghost nets',
     polymer: 'Nylon / polyethylene',
     resinCode: '—',
@@ -122,9 +150,176 @@ export const SPECIMENS: Specimen[] = [
     openQuestion: 'How could fishers be rewarded for bringing lost gear back to port?',
     sources: [NOAA, { label: 'Lebreton et al., Scientific Reports, 2018 (Great Pacific Garbage Patch)' }],
   },
+
+  // ---- Batch 2 (November 2026, from pilot feedback: "there are other things made of plastic").
+  // No sourced typical mass yet, so massGrams stays null and these add nothing to the shared goal.
+  {
+    id: 'coffee-cup',
+    short: 'Coffee cup',
+    rarity: 'Common',
+    set: 'takeout',
+    shape: 'coffee-cup',
+    name: 'Paper coffee cup',
+    polymer: 'Paperboard lined with polyethylene (PE), plus a plastic lid',
+    resinCode: 'mixed',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'High',
+    fieldNotes:
+      'It looks like paper, but a thin plastic lining keeps the coffee from soaking through. That lining is bonded to the paper, which makes the cup hard to recycle. UK lawmakers estimated about 2.5 billion are thrown away there every year.',
+    frontierScience: 'Some cities run reusable-cup schemes: you borrow a cup at one café and return it at another.',
+    openQuestion: 'What would make carrying your own cup easier than taking a new one?',
+    sources: [{ label: 'UK Parliament, Environmental Audit Committee, "Disposable Packaging: Coffee Cups", 2018', url: 'https://committees.parliament.uk/committee/62/environmental-audit-committee/' }],
+  },
+  {
+    id: 'chip-bag',
+    short: 'Chip bag',
+    rarity: 'Common',
+    set: 'takeout',
+    shape: 'chip-bag',
+    name: 'Chip bag',
+    polymer: 'Layered plastic film (often polypropylene) with a thin metal coating',
+    resinCode: 'mixed',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'High',
+    fieldNotes:
+      'The shiny inside is a metal layer a fraction of a micron thick, fused to plastic film. Layers like these are hard to separate, so most home recycling bins do not accept chip bags.',
+    frontierScience: 'Researchers are testing ways to peel the layers apart, and single-material films that could be recycled like an ordinary bag.',
+    openQuestion: 'If a snack company asked you to redesign its bag, what would you change first?',
+    sources: [{ label: 'OPRL, WRAP and CEFLEX in-store recycling criteria for metallised films, 2021 (reported by letsrecycle.com)', url: 'https://www.letsrecycle.com/news/oprl-adds-in-store-recycling-labels-to-crisp-packets/' }],
+  },
+  {
+    id: 'toothbrush',
+    short: 'Toothbrush',
+    rarity: 'Common',
+    set: 'home',
+    shape: 'toothbrush',
+    name: 'Plastic toothbrush',
+    polymer: 'Usually a plastic handle with nylon bristles',
+    resinCode: 'mixed',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'Moderate',
+    fieldNotes:
+      'Dentists recommend a new toothbrush every three to four months, or sooner if the bristles fray. That adds up to several brushes per person every year, and every one keeps its plastic.',
+    frontierScience: 'Some brushes now have replaceable heads, so only the bristles are thrown away, not the whole handle.',
+    openQuestion: 'How many toothbrushes has your household used this year? How would you find out?',
+    sources: [{ label: 'American Dental Association, MouthHealthy: Toothbrushes', url: 'https://www.mouthhealthy.org/all-topics-a-z/toothbrushes' }],
+  },
+  {
+    id: 'wet-wipes',
+    short: 'Wet wipes',
+    rarity: 'Hidden',
+    set: 'home',
+    shape: 'wipe',
+    name: 'Wet wipes',
+    polymer: 'Many contain plastic fibres such as polyester or polypropylene',
+    resinCode: '—',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'High',
+    fieldNotes:
+      'They feel like cloth, but many wipes contain plastic. When flushed, they block sewers and break into microplastics in rivers. England has passed a law banning the sale of wet wipes that contain plastic.',
+    frontierScience: 'Plastic-free wipes made from plant fibres are replacing plastic ones.',
+    openQuestion: 'Which everyday jobs do people use wipes for, and which could a washable cloth do instead?',
+    sources: [{ label: 'UK Government (Defra), "New law bans plastic wet wipes to protect rivers and seas"', url: 'https://www.gov.uk/government/news/new-law-bans-plastic-wet-wipes-to-protect-rivers-and-seas' }],
+  },
+  {
+    id: 'tea-bag',
+    short: 'Tea bag',
+    rarity: 'Hidden',
+    set: 'home',
+    shape: 'tea-bag',
+    name: 'Silken tea bag',
+    polymer: 'Nylon or PET mesh (the "silky" pyramid kind)',
+    resinCode: '—',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'Moderate',
+    fieldNotes:
+      'Some premium tea bags are made of plastic mesh. In a lab test with emptied bags in hot water, one bag released about 11.6 billion microplastic particles. Scientists say more research is needed on what that means for health.',
+    frontierScience: 'The researchers matched the particles to the bags’ own plastics using infrared light, a technique called FTIR spectroscopy.',
+    openQuestion: 'How could you tell whether a tea bag is paper or plastic without a lab?',
+    sources: [{ label: 'Hernandez et al., Environmental Science & Technology, 2019, "Plastic Teabags Release Billions of Microparticles and Nanoparticles into Tea"', url: 'https://doi.org/10.1021/acs.est.9b02540' }],
+  },
+  {
+    id: 'polyester-shirt',
+    short: 'Polyester top',
+    rarity: 'Hidden',
+    set: 'wardrobe',
+    shape: 'shirt',
+    name: 'Polyester clothing',
+    polymer: 'Polyester (PET fibre), the same plastic as water bottles',
+    resinCode: '—',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'High',
+    fieldNotes:
+      'Sports tops, fleeces and many school uniforms are plastic. In a washing-machine study, one 6 kg load of polyester shed an estimated 496,000 tiny fibres into the waste water.',
+    frontierScience: 'Washing-machine filters and laundry bags that catch fibres are being developed and tested.',
+    openQuestion: 'Does washing on a cooler, shorter cycle change how many fibres come off? How would you test it?',
+    sources: [{ label: 'Napper & Thompson, Marine Pollution Bulletin, 2016 (fibres released from domestic washing)', url: 'https://pubmed.ncbi.nlm.nih.gov/27686821/' }],
+  },
+  {
+    id: 'glitter',
+    short: 'Glitter',
+    rarity: 'Hidden',
+    set: 'wardrobe',
+    shape: 'glitter',
+    name: 'Glitter',
+    polymer: 'PET film coated with aluminium and a thin plastic topcoat',
+    resinCode: '—',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'Moderate',
+    fieldNotes:
+      'Each sparkle is a tiny piece of plastic: a microplastic from the start. In a river-habitat experiment, glitter halved the root length of a small water plant and lowered algae in the water.',
+    frontierScience: 'The same study found that some "biodegradable" glitters had similar effects, so a better label is not the whole answer.',
+    openQuestion: 'Could you design a celebration that sparkles without anything you throw away?',
+    sources: [{ label: 'Green et al., Journal of Hazardous Materials, 2021 (glitter in freshwater habitats), via Anglia Ruskin University', url: 'https://aru.ac.uk/news/glitter-litter-could-be-damaging-rivers-study' }],
+  },
+  {
+    id: 'chewing-gum',
+    short: 'Chewing gum',
+    rarity: 'Hidden',
+    set: 'wardrobe',
+    shape: 'gum',
+    name: 'Chewing gum',
+    polymer: 'Gum base made with synthetic polymers such as polyvinyl acetate',
+    resinCode: '—',
+    massGrams: null,
+    massLabel: 'not measured yet',
+    persistence: 'Unknown (no reliable estimate)',
+    threat: 'Moderate',
+    fieldNotes:
+      'The chewy part of most gum is not food. US food rules list synthetic polymers such as polyvinyl acetate, the same polymer used in white glue, as permitted gum base. That is why gum stuck to pavements does not wash away.',
+    frontierScience: 'Some gums go back to chicle, a natural tree sap that was the original gum base.',
+    openQuestion: 'How many pieces of gum are stuck on one square metre near your school entrance?',
+    sources: [{ label: 'US Code of Federal Regulations, 21 CFR 172.615 (Chewing gum base)', url: 'https://www.ecfr.gov/current/title-21/chapter-I/subchapter-B/part-172/subpart-G/section-172.615' }],
+  },
 ];
 
-export const QUICK_LOG_IDS = ['pet-bottle', 'bottle-cap', 'grocery-bag', 'straw', 'foam-cup'];
+export const SETS: { id: SetId; name: string }[] = [
+  { id: 'takeout', name: 'Takeout & drinks' },
+  { id: 'home', name: 'Home & bathroom' },
+  { id: 'wardrobe', name: 'Wardrobe & school' },
+  { id: 'ocean', name: 'Ocean' },
+];
+
+/** Plastics a player can log from the Pulse screen. Rare ocean specimens are found through Scan and the Lab. */
+export const LOGGABLE_IDS = SPECIMENS.filter((s) => s.rarity !== 'Rare').map((s) => s.id);
+export const QUICK_LOG_IDS = LOGGABLE_IDS;
+
+/** First-discovery bonus, by rarity. */
+export const DISCOVERY_XP: Record<Rarity, number> = { Common: 15, Hidden: 30, Rare: 50 };
 
 export const specimenById = (id: string): Specimen =>
   SPECIMENS.find((s) => s.id === id) ?? SPECIMENS[0];

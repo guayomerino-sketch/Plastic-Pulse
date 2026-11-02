@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import type { ChoiceAction, GameState, Idea, LabProgress } from '../types';
 import { CHALLENGES, RANKS, XP } from '../data/content';
-import { specimenById } from '../data/specimens';
+import { DISCOVERY_XP, specimenById } from '../data/specimens';
 
 // Phase 1: progress is saved on this device. Phase 2 moves it to Firebase.
 const STORAGE_KEY = 'plastic-pulse:v1';
@@ -22,6 +22,7 @@ export const initialState: GameState = {
   votedIdeaIds: [],
   musicOn: true,
   studied: [],
+  discovery: null,
 };
 
 export type Action =
@@ -34,6 +35,7 @@ export type Action =
   | { type: 'idea/vote'; id: string }
   | { type: 'music'; on: boolean }
   | { type: 'study'; specimenId: string }
+  | { type: 'discovery/clear' }
   | { type: 'reset' };
 
 function touchStreak(s: GameState): GameState {
@@ -48,11 +50,19 @@ function emptyLab(id: string): LabProgress {
   return { hypothesis: '', done: Array(ch.days).fill(false), conclusion: '', completed: false };
 }
 
+export const isFound = (s: GameState, id: string) => s.studied.includes(id) || s.logs.some((l) => l.specimenId === id);
+
+/** The first time a player meets a specimen: bonus XP by rarity and a reveal. */
+function discover(s: GameState, id: string): GameState {
+  if (isFound(s, id)) return s;
+  return { ...s, xp: s.xp + DISCOVERY_XP[specimenById(id).rarity], discovery: { specimenId: id, at: Date.now() } };
+}
+
 export function reducer(s: GameState, a: Action): GameState {
   switch (a.type) {
     case 'log': {
       const delta = a.action === 'refuse' ? 0.06 : a.action === 'reuse' ? 0.03 : -0.06;
-      const next = touchStreak(s);
+      const next = touchStreak(discover(s, a.specimenId));
       return {
         ...next,
         xp: next.xp + XP[a.action],
@@ -89,8 +99,13 @@ export function reducer(s: GameState, a: Action): GameState {
     }
     case 'music':
       return { ...s, musicOn: a.on };
-    case 'study':
-      return s.studied.includes(a.specimenId) ? s : { ...s, studied: [...s.studied, a.specimenId] };
+    case 'study': {
+      if (s.studied.includes(a.specimenId)) return s;
+      const next = discover(s, a.specimenId);
+      return { ...next, studied: [...next.studied, a.specimenId] };
+    }
+    case 'discovery/clear':
+      return { ...s, discovery: null };
     case 'reset':
       return initialState;
   }
@@ -101,7 +116,7 @@ function load(): GameState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState;
     const parsed = JSON.parse(raw) as GameState;
-    return parsed.version === 1 ? { ...initialState, ...parsed } : initialState;
+    return parsed.version === 1 ? { ...initialState, ...parsed, discovery: null } : initialState;
   } catch {
     return initialState;
   }

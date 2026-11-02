@@ -6,6 +6,17 @@ export type ScreenId = 'pulse' | 'scan' | 'lab' | 'solutions' | 'world' | 'feedb
 
 export type ThreatLevel = 'Moderate' | 'High' | 'Severe';
 
+/** How surprising or hard to find a specimen is. Hidden = most people don't know it contains plastic. */
+export type Rarity = 'Common' | 'Rare' | 'Hidden';
+
+/** Collection sets in the Specimen Book, grouped by where players meet the plastic. */
+export type SetId = 'takeout' | 'home' | 'wardrobe' | 'ocean';
+
+/** Procedural 3D model drawn for the specimen's hologram. */
+export type ShapeId =
+  | 'bottle' | 'cap' | 'bag' | 'straw' | 'foam-cup' | 'rings' | 'net'
+  | 'coffee-cup' | 'chip-bag' | 'toothbrush' | 'wipe' | 'tea-bag' | 'shirt' | 'glitter' | 'gum';
+
 export interface Source {
   label: string;
   url?: string;
@@ -15,6 +26,10 @@ export interface Source {
 export interface Specimen {
   id: string;
   name: string;
+  short: string; // chip label on the Pulse screen
+  rarity: Rarity;
+  set: SetId;
+  shape: ShapeId;
   polymer: string;
   resinCode: string; // e.g. "#1"
   massGrams: number | null; // typical mass used for impact math; null = not tracked
@@ -91,4 +106,5 @@ export interface GameState {
   votedIdeaIds: string[];
   musicOn: boolean;
   studied: string[]; // specimens opened in Scan or the Book; logged ones count as discovered too
+  discovery: { specimenId: string; at: number } | null; // the latest first discovery, shown as a reveal
 }

@@ -184,6 +184,17 @@ p { margin: 0; }
 .sp-sources a { color: var(--teal-soft); }
 .sp-toggle { align-self: flex-start; background: none; border: 0; padding: 4px 0; min-height: 36px; font: 500 11px var(--mono); color: var(--teal-soft); text-decoration: underline; cursor: pointer; }
 
+/* hologram + rarity */
+.hologram { height: 210px; margin: -4px -8px 0; border-radius: 22px; touch-action: pan-y; cursor: grab;
+  background: radial-gradient(60% 55% at 50% 78%, rgba(62, 230, 200, 0.16), transparent 70%); }
+.hologram.r-hidden { background: radial-gradient(60% 55% at 50% 78%, rgba(185, 164, 255, 0.18), transparent 70%); }
+.hologram.r-rare { background: radial-gradient(60% 55% at 50% 78%, rgba(255, 197, 102, 0.16), transparent 70%); }
+.hologram canvas { display: block; width: 100%; height: 100%; }
+.rarity { align-self: flex-start; font: 500 10px var(--mono); letter-spacing: 1.4px; text-transform: uppercase; padding: 3px 9px; border-radius: 10px; }
+.rarity.r-common { color: var(--teal-soft); border: 1px solid rgba(127, 243, 220, 0.5); }
+.rarity.r-hidden { color: var(--violet-soft); border: 1px solid rgba(185, 164, 255, 0.6); background: rgba(185, 164, 255, 0.1); }
+.rarity.r-rare { color: var(--amber); border: 1px solid rgba(255, 197, 102, 0.6); background: rgba(255, 197, 102, 0.1); }
+
 /* specimen book */
 .book-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
 .book-count { text-align: right; font: 500 24px var(--mono); color: var(--teal-soft); line-height: 1.1; }
@@ -198,6 +209,29 @@ p { margin: 0; }
 .book-tile.on small { color: var(--on-teal); }
 .book-tile.locked { color: var(--muted); font-weight: 500; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.24); }
 .book-tile.locked small { color: #8ea2bd; }
+.book-tile.r-hidden { background: rgba(185, 164, 255, 0.12); border-color: rgba(185, 164, 255, 0.5); }
+.book-tile.r-hidden small { color: var(--violet-soft); }
+.book-tile.r-hidden.on { color: #1e1546; background: linear-gradient(180deg, #e6dcff, #b9a4ff 60%, #8f76f0); box-shadow: 0 0 18px rgba(185, 164, 255, 0.5); }
+.book-tile.r-rare { background: rgba(255, 197, 102, 0.1); border-color: rgba(255, 197, 102, 0.5); }
+.book-tile.r-rare small { color: var(--amber); }
+.book-tile.r-rare.on { color: #2b1a00; background: linear-gradient(180deg, #ffe0a3, #ffc566 60%, #e9a23b); box-shadow: 0 0 18px rgba(255, 197, 102, 0.5); }
+.book-tile.r-hidden.on small, .book-tile.r-rare.on small { color: inherit; }
+.book-tile.locked.r-hidden { background: rgba(185, 164, 255, 0.05); border: 1px dashed rgba(185, 164, 255, 0.45); color: #b8a9e0; }
+.book-tile.locked.r-rare { background: rgba(255, 197, 102, 0.04); border: 1px dashed rgba(255, 197, 102, 0.4); color: #d9bb86; }
+.book-set { display: flex; flex-direction: column; gap: 8px; }
+.book-set .section-title { margin: 6px 0 0; }
+
+/* first-discovery reveal */
+.reveal { position: fixed; z-index: 6; top: calc(64px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; max-width: 536px; margin: 0 auto; padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px; animation: reveal-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.reveal-orb { width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; color: var(--on-teal); background: var(--teal-fill);
+  box-shadow: 0 0 0 6px rgba(62, 230, 200, 0.15), 0 0 30px rgba(62, 230, 200, 0.6); animation: orb 1.6s ease-in-out infinite; }
+.reveal.r-hidden .reveal-orb { color: #1e1546; background: linear-gradient(180deg, #e6dcff, #b9a4ff 60%, #8f76f0); box-shadow: 0 0 0 6px rgba(185, 164, 255, 0.15), 0 0 30px rgba(185, 164, 255, 0.6); }
+.reveal.r-rare .reveal-orb { color: #2b1a00; background: linear-gradient(180deg, #ffe0a3, #ffc566 60%, #e9a23b); box-shadow: 0 0 0 6px rgba(255, 197, 102, 0.15), 0 0 30px rgba(255, 197, 102, 0.6); }
+.reveal-name { font: 700 18px/1.2 var(--display); color: var(--ink-strong); }
+.reveal .btn { min-height: 44px; padding: 0 14px; flex-shrink: 0; }
+@keyframes reveal-in { from { transform: translateY(-24px) scale(0.92); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes orb { 50% { transform: scale(1.08); } }
 
 /* lab */
 .steps { gap: 14px; }
@@ -259,7 +293,7 @@ textarea, input { width: 100%; margin-top: 6px; background: rgba(0, 0, 0, 0.3); 
 @keyframes glow { 50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 10px rgba(62, 230, 200, 0.08), 0 12px 56px rgba(62, 230, 200, 0.65); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .enter, .laser, .specimen { animation: none; }
+  .enter, .laser, .specimen, .reveal, .reveal-orb { animation: none; }
   .lyric, .veil { transition: none; }
 }
 

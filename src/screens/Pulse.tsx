@@ -9,11 +9,9 @@ interface Props {
   onOpenProblem: () => void;
 }
 
-const SHORT: Record<string, string> = { 'pet-bottle': 'Water bottle', 'bottle-cap': 'Bottle cap', 'grocery-bag': 'Bag', straw: 'Straw', 'foam-cup': 'Foam cup' };
-
 const MESSAGES: Record<ChoiceAction, (name: string, g: string) => string> = {
   refuse: (n, g) => `Refused: ${n}. ${g}never made. She lifts her arms and the light rises through her.`,
-  reuse: (n) => `Reused instead of a new ${n.toLowerCase()}. One less in the system.`,
+  reuse: (n) => `Reused instead of buying new: one less ${n.toLowerCase()} in the system.`,
   use: () => 'Logged. Plastic creeps up her dress and her leaves fall. Honest data is how scientists find patterns.',
 };
 
@@ -26,7 +24,7 @@ export default function Pulse({ onChoice, onOpenProblem }: Props) {
 
   const choose = (action: ChoiceAction) => {
     onChoice(itemId, action);
-    const grams = item.massGrams ? `About ${item.massGrams} g of plastic ` : '';
+    const grams = item.massGrams ? `About ${item.massGrams} g of plastic ` : 'Its plastic was ';
     setMsg(`${MESSAGES[action](item.name, grams)} +${XP[action]} XP`);
   };
 
@@ -41,7 +39,7 @@ export default function Pulse({ onChoice, onOpenProblem }: Props) {
         <div className="chips" role="radiogroup" aria-label="Which plastic?">
           {QUICK_LOG_IDS.map((id) => (
             <button key={id} role="radio" aria-checked={id === itemId} className={`chip ${id === itemId ? 'on' : ''}`} onClick={() => setItemId(id)}>
-              {SHORT[id] ?? specimenById(id).name}
+              {specimenById(id).short}
             </button>
           ))}
         </div>

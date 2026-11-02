@@ -25,12 +25,17 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
    - [x] Live weekly shared goal (`src/services/sharedGoal.ts`, World screen), rules + emulator tests.
    - [x] Anonymous sign-in enabled (auto clean-up off, so players keep their id), `firestore.rules` deployed. Checked live: sign-in and the goal read work.
    - [ ] Optional Google sign-in that upgrades the anonymous account, and cloud save of progress.
-3. Country ranking (countries only, never individuals) and real city lights on the Earth view.
-4. Community ideas and voting in the Solution Lab, with moderation before ideas go public (young players).
-5. Scanner: a server function that holds the Gemini key (needs the Blaze plan, or another host).
-6. Share cards.
-7. Class codes for schools.
-8. Phase 3: Android app (Capacitor), Google Play. Phase 4: sculpted Guardian, logo, more content.
+3. Specimen Book (from pilot feedback):
+   - [x] Book tab, 3D hologram for every specimen, rarity (Common / Hidden / Rare), sets, first-discovery reveal and bonus XP.
+   - [x] Batch 2: 8 more sourced plastics (15 total). They have no sourced mass yet, so they add 0 g to the shared goal.
+   - [ ] Batch 3: more specimens; sourced typical masses so new items count toward the goal.
+   - [ ] Google Earth-style globe: relief, ocean glint, clouds, blue atmosphere, pinch-zoom, fly to a city.
+4. Country ranking (countries only, never individuals) and real city lights on the Earth view.
+5. Community ideas and voting in the Solution Lab, with moderation before ideas go public (young players).
+6. Scanner: a server function that holds the Gemini key (needs the Blaze plan, or another host).
+7. Share cards.
+8. Class codes for schools.
+9. Phase 3: Android app (Capacitor), Google Play. Phase 4: sculpted Guardian, logo, more content.
 
 ## Pilot (started November 2026)
 

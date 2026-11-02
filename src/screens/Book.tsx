@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { SPECIMENS, specimenById } from '../data/specimens';
+import { SETS, SPECIMENS, specimenById } from '../data/specimens';
 import SpecimenCard from '../components/SpecimenCard';
-import { useGame } from '../game/store';
+import { isFound, useGame } from '../game/store';
 
 /**
- * The Specimen Book: every plastic a player has logged or studied, as a collection.
- * Undiscovered specimens stay locked so there is always something left to find.
+ * The Specimen Book: every plastic a player has logged or studied, as a collection in sets.
+ * Undiscovered specimens stay locked, showing only their rarity, so there is always something left to find.
  * New specimens are added only once their facts are sourced (see specimens.ts).
  */
-export default function Book({ onScan }: { onScan: () => void }) {
+export default function Book({ initialId, onScan }: { initialId?: string | null; onScan: () => void }) {
   const { state } = useGame();
-  const found = new Set([...state.logs.map((l) => l.specimenId), ...state.studied]);
-  const discovered = SPECIMENS.filter((s) => found.has(s.id));
-  const [selected, setSelected] = useState<string | null>(discovered[0]?.id ?? null);
+  const found = (id: string) => isFound(state, id);
+  const discovered = SPECIMENS.filter((s) => found(s.id));
+  const [selected, setSelected] = useState<string | null>(initialId ?? discovered[0]?.id ?? null);
   const [hint, setHint] = useState('');
 
   return (
@@ -32,23 +32,42 @@ export default function Book({ onScan }: { onScan: () => void }) {
         <p className="note">Your book is empty. Log a plastic on Pulse, or study one in Scan, and it appears here.</p>
       )}
 
-      <div className="book-grid">
-        {SPECIMENS.map((s, i) =>
-          found.has(s.id) ? (
-            <button key={s.id} className={`book-tile ${s.id === selected ? 'on' : ''}`} aria-pressed={s.id === selected} onClick={() => { setSelected(s.id); setHint(''); }}>
-              <small>{s.resinCode} · {String(i + 1).padStart(2, '0')}</small>{s.name}
-            </button>
-          ) : (
-            <button key={s.id} className="book-tile locked" aria-label="Undiscovered specimen" onClick={() => setHint('Undiscovered. Log it on Pulse or study it in Scan to unlock it.')}>
-              <small>?? · {String(i + 1).padStart(2, '0')}</small>Locked
-            </button>
-          ),
-        )}
-      </div>
+      {selected && found(selected) && <SpecimenCard key={selected} s={specimenById(selected)} number={SPECIMENS.findIndex((s) => s.id === selected) + 1} />}
+
+      {SETS.map((set) => {
+        const items = SPECIMENS.filter((s) => s.set === set.id);
+        const have = items.filter((s) => found(s.id)).length;
+        const complete = have === items.length;
+        return (
+          <section key={set.id} className="book-set" aria-label={`${set.name}: ${have} of ${items.length}`}>
+            <div className="row">
+              <h2 className="section-title">{set.name}</h2>
+              <span className={`label ${complete ? 'accent' : ''}`}>{complete ? 'Set complete' : `${have}/${items.length}`}</span>
+            </div>
+            <div className="book-grid">
+              {items.map((s) => {
+                const n = String(SPECIMENS.indexOf(s) + 1).padStart(2, '0');
+                const r = s.rarity.toLowerCase();
+                return found(s.id) ? (
+                  <button key={s.id} className={`book-tile r-${r} ${s.id === selected ? 'on' : ''}`} aria-pressed={s.id === selected}
+                    onClick={() => { setSelected(s.id); setHint(''); window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}>
+                    <small>{n} · {s.rarity}</small>{s.short}
+                  </button>
+                ) : (
+                  <button key={s.id} className={`book-tile locked r-${r}`} aria-label={`Locked ${s.rarity.toLowerCase()} specimen`}
+                    onClick={() => setHint(s.rarity === 'Hidden'
+                      ? 'A hidden plastic: something most people don’t know is plastic. Log it on Pulse or study it in Scan to unlock it.'
+                      : s.rarity === 'Rare' ? 'A rare specimen. Look for it in Scan.' : 'Log it on Pulse or study it in Scan to unlock it.')}>
+                    <small>{n} · {s.rarity}</small>Locked
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
       {hint && <p className="note" role="status">{hint}</p>}
       <p className="tag">More specimens are on the way. Each one joins the book once its facts are checked against a source.</p>
-
-      {selected && found.has(selected) && <SpecimenCard s={specimenById(selected)} number={SPECIMENS.findIndex((s) => s.id === selected) + 1} />}
 
       <button className="btn ghost-violet" onClick={onScan}>Find more in Scan →</button>
     </div>
