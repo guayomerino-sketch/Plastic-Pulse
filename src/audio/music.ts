@@ -1,7 +1,8 @@
 import { SONG } from '../data/content';
 
 /**
- * Plays "Won't You Be a Hero?": the vocal version first, then the instrumental on loop.
+ * Plays the instrumental of "Won't You Be a Hero?" on loop. Pilot players asked for no vocals
+ * while they play; the lyrics still appear as on-screen lines.
  * When the biome is sick, a low-pass filter muffles the music; it clears as the biome heals.
  * Browsers only allow audio after a tap, so call start() from a click handler.
  */
@@ -12,26 +13,18 @@ export class Music {
   private analyser: AnalyserNode | null = null;
 
   constructor() {
-    this.el = this.makeEl(SONG.vocal, false);
+    this.el = this.makeEl(SONG.instrumental, true);
   }
 
   private makeEl(src: string, loop: boolean) {
     const el = new Audio(src);
     el.preload = 'auto';
     el.loop = loop;
-    el.addEventListener('ended', () => this.toInstrumental());
     return el;
   }
 
   private baseVolume() {
-    return this.el.src.includes('instrumental') ? 0.92 : 0.62;
-  }
-
-  private toInstrumental() {
-    this.el.src = SONG.instrumental;
-    this.el.loop = true;
-    this.el.volume = this.baseVolume();
-    this.el.play().catch(() => {});
+    return 0.92;
   }
 
   private setupGraph() {
