@@ -79,6 +79,51 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    // ---- Community ideas (Solution Lab) ----
+    // Public ideas live in ideas/{id} and are approved by a moderator (admins/{uid}, set in the Firebase console).
+    // Class ideas live in groups/{gid}/ideas/{id}, are approved by the teacher and only classmates see them.
+    // One vote per player per idea: the vote doc and the votes counter change together.
+    function isAdmin() { return isGoogle() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function ideaText(t, min, max) { return t is string && t.size() >= min && t.size() <= max && noContact(t); }
+    function newIdea() {
+      return request.resource.data.keys().hasOnly(['problemId', 'title', 'problem', 'idea', 'evidence', 'uid', 'status', 'votes', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.problemId is string && request.resource.data.problemId.size() <= 40
+        && ideaText(request.resource.data.title, 4, 80)
+        && ideaText(request.resource.data.problem, 0, 400)
+        && ideaText(request.resource.data.idea, 11, 600)
+        && ideaText(request.resource.data.evidence, 0, 400)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.votes == 0
+        && request.resource.data.createdAt == request.time;
+    }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function reviewed() { return onlyChanged(['status']) && request.resource.data.status in ['approved', 'rejected']; }
+    function voteChanged(votePath) {
+      return onlyChanged(['votes']) && resource.data.status == 'approved' && (
+        (request.resource.data.votes == resource.data.votes + 1 && !exists(votePath) && existsAfter(votePath))
+        || (request.resource.data.votes == resource.data.votes - 1 && exists(votePath) && !existsAfter(votePath)));
+    }
+    function voteDoc() { return request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time; }
+
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /ideas/{id} {
+      function myVote() { return /databases/$(database)/documents/ideas/$(id)/votes/$(request.auth.uid); }
+      allow read: if signedIn() && (resource.data.status == 'approved' || resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if signedIn() && newIdea();
+      allow update: if signedIn() && ((isAdmin() && reviewed()) || voteChanged(myVote()));
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid && resource.data.status == 'pending';
+      match /votes/{uid} {
+        function idea() { return /databases/$(database)/documents/ideas/$(id); }
+        allow get: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn() && request.auth.uid == uid && voteDoc() && getAfter(idea()).data.votes == get(idea()).data.votes + 1;
+        allow delete: if signedIn() && request.auth.uid == uid && getAfter(idea()).data.votes == get(idea()).data.votes - 1;
+      }
+    }
+
     // Groups: a class (made by a teacher) or, later, a household. Members join with a short code.
     // Members are anonymous: the owner sees how many joined and the group's total, never who did what.
     // Keep codes and goals in sync with src/services/groups.ts.
@@ -132,6 +177,21 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['grams'])
           && validDelta(delta())
           && delta() == playerDelta();
+      }
+
+      // Class ideas: classmates and the teacher see approved ones; the teacher reviews.
+      match /ideas/{id} {
+        function myVote() { return /databases/$(database)/documents/groups/$(gid)/ideas/$(id)/votes/$(request.auth.uid); }
+        allow read: if (isMember() && resource.data.status == 'approved') || (signedIn() && resource.data.uid == request.auth.uid) || isOwner();
+        allow create: if isMember() && newIdea();
+        allow update: if (isOwner() && reviewed()) || (isMember() && voteChanged(myVote()));
+        allow delete: if signedIn() && resource.data.uid == request.auth.uid && resource.data.status == 'pending';
+        match /votes/{uid} {
+          function idea() { return /databases/$(database)/documents/groups/$(gid)/ideas/$(id); }
+          allow get: if signedIn() && request.auth.uid == uid;
+          allow create: if isMember() && request.auth.uid == uid && voteDoc() && getAfter(idea()).data.votes == get(idea()).data.votes + 1;
+          allow delete: if signedIn() && request.auth.uid == uid && getAfter(idea()).data.votes == get(idea()).data.votes - 1;
+        }
       }
     }
 

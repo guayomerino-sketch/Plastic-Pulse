@@ -55,3 +55,8 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 - Each player's weekly part is readable only by that player.
 - Anti-spam (firestore.rules): one player adds at most 500 g per week to the shared goal, with 3 seconds between choices. Feedback rejects emails, phone numbers and links (same patterns in `src/services/feedback.ts`).
 - The intro says the game is made for players aged 13 and up.
+
+## In progress: community ideas (November 2026)
+- Done: `firestore.rules` for public ideas (`ideas/`, moderator in `admins/{uid}`) and class ideas (`groups/{gid}/ideas/`, teacher reviews), one vote per player; 107 rules tests pass. Service: `src/services/ideas.ts`.
+- Left: rebuild `src/screens/Solutions.tsx` on the service (pitch → review → vote, review queues for moderator and teachers), test in the emulators, deploy rules, add Eduardo's uid to `admins/` in the Firebase console.
+- Later: declutter the World → Our choices panel on desktop (user feedback).
