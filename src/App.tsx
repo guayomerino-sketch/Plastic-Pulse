@@ -169,7 +169,7 @@ export default function App() {
         {screen === 'pulse' && <Pulse onChoice={onChoice} onOpenProblem={() => go('solutions')} />}
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
-        {screen === 'solutions' && <Solutions />}
+        {screen === 'solutions' && <Solutions googleUid={account.account?.kind === 'google' ? account.account.uid : null} />}
         {screen === 'world' && <World account={account} classCode={state.group ? '' : classCode} onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
         {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
         {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}

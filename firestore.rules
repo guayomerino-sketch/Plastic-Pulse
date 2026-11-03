@@ -80,47 +80,79 @@ service cloud.firestore {
     }
 
     // ---- Community ideas (Solution Lab) ----
-    // Public ideas live in ideas/{id} and are approved by a moderator (admins/{uid}, set in the Firebase console).
-    // Class ideas live in groups/{gid}/ideas/{id}, are approved by the teacher and only classmates see them.
-    // One vote per player per idea: the vote doc and the votes counter change together.
+    // Ideas appear right away: creativity never waits for approval. Adults step in afterwards:
+    // a teacher can hide any idea in their class; the moderator (admins/{uid}, set in the Firebase console)
+    // can hide or restore community ideas. Players can report an idea; three reports hide it until an adult looks.
+    // Public ideas: ideas/{id}. Class ideas: groups/{gid}/ideas/{id} (only classmates and the teacher see them).
+    // Keep the word list and limits in sync with src/services/ideas.ts.
     function isAdmin() { return isGoogle() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
-    function ideaText(t, min, max) { return t is string && t.size() >= min && t.size() <= max && noContact(t); }
+    function noBadWords(t) {
+      return !t.matches('(?is).*\\b(fuck|shit|bitch|cunt|dick|pussy|asshole|bastard|slut|whore|nigg|fag|retard|puta|mierda|pendej|cabron|verga|chinga|coño|culero|marica).*');
+    }
+    function ideaText(t, min, max) { return t is string && t.size() >= min && t.size() <= max && noContact(t) && noBadWords(t); }
+    function pitcherPath() { return /databases/$(database)/documents/pitchers/$(request.auth.uid); }
+    // One new idea per minute per player, recorded in pitchers/{uid} in the same batch.
+    function pitchPaced() {
+      return getAfter(pitcherPath()).data.at == request.time
+        && (!exists(pitcherPath()) || request.time > get(pitcherPath()).data.at + duration.value(60, 's'));
+    }
     function newIdea() {
-      return request.resource.data.keys().hasOnly(['problemId', 'title', 'problem', 'idea', 'evidence', 'uid', 'status', 'votes', 'createdAt'])
+      return request.resource.data.keys().hasOnly(['problemId', 'title', 'problem', 'idea', 'evidence', 'uid', 'status', 'votes', 'reports', 'createdAt'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.problemId is string && request.resource.data.problemId.size() <= 40
         && ideaText(request.resource.data.title, 4, 80)
         && ideaText(request.resource.data.problem, 0, 400)
         && ideaText(request.resource.data.idea, 11, 600)
         && ideaText(request.resource.data.evidence, 0, 400)
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status == 'visible'
         && request.resource.data.votes == 0
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.reports == 0
+        && request.resource.data.createdAt == request.time
+        && pitchPaced();
     }
     function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
-    function reviewed() { return onlyChanged(['status']) && request.resource.data.status in ['approved', 'rejected']; }
+    // An adult hides or restores an idea (restoring clears its reports).
+    function adultSets() {
+      return onlyChanged(['status', 'reports']) && request.resource.data.status in ['visible', 'hidden']
+        && (request.resource.data.status == 'hidden' || request.resource.data.reports == 0);
+    }
     function voteChanged(votePath) {
-      return onlyChanged(['votes']) && resource.data.status == 'approved' && (
+      return onlyChanged(['votes']) && resource.data.status == 'visible' && (
         (request.resource.data.votes == resource.data.votes + 1 && !exists(votePath) && existsAfter(votePath))
         || (request.resource.data.votes == resource.data.votes - 1 && exists(votePath) && !existsAfter(votePath)));
     }
-    function voteDoc() { return request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time; }
+    // A report adds one, together with the reporter's own report doc; the third report hides the idea.
+    function reported(reportPath) {
+      return onlyChanged(['reports', 'status']) && resource.data.status == 'visible'
+        && request.resource.data.reports == resource.data.reports + 1 && !exists(reportPath) && existsAfter(reportPath)
+        && request.resource.data.status == (request.resource.data.reports >= 3 ? 'hidden' : 'visible');
+    }
+    function stamp() { return request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time; }
 
     match /admins/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
     }
 
+    match /pitchers/{uid} {
+      allow create, update: if signedIn() && request.auth.uid == uid && stamp();
+    }
+
     match /ideas/{id} {
-      function myVote() { return /databases/$(database)/documents/ideas/$(id)/votes/$(request.auth.uid); }
-      allow read: if signedIn() && (resource.data.status == 'approved' || resource.data.uid == request.auth.uid || isAdmin());
+      function mine(kind) { return /databases/$(database)/documents/ideas/$(id)/$(kind)/$(request.auth.uid); }
+      allow read: if signedIn() && (resource.data.status == 'visible' || resource.data.uid == request.auth.uid || isAdmin());
       allow create: if signedIn() && newIdea();
-      allow update: if signedIn() && ((isAdmin() && reviewed()) || voteChanged(myVote()));
-      allow delete: if signedIn() && resource.data.uid == request.auth.uid && resource.data.status == 'pending';
+      allow update: if signedIn() && ((isAdmin() && adultSets()) || voteChanged(mine('votes')) || reported(mine('reports')));
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
       match /votes/{uid} {
         function idea() { return /databases/$(database)/documents/ideas/$(id); }
         allow get: if signedIn() && request.auth.uid == uid;
-        allow create: if signedIn() && request.auth.uid == uid && voteDoc() && getAfter(idea()).data.votes == get(idea()).data.votes + 1;
+        allow create: if signedIn() && request.auth.uid == uid && stamp() && getAfter(idea()).data.votes == get(idea()).data.votes + 1;
         allow delete: if signedIn() && request.auth.uid == uid && getAfter(idea()).data.votes == get(idea()).data.votes - 1;
+      }
+      match /reports/{uid} {
+        function idea() { return /databases/$(database)/documents/ideas/$(id); }
+        allow get: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn() && request.auth.uid == uid && stamp() && getAfter(idea()).data.reports == get(idea()).data.reports + 1;
       }
     }
 
@@ -179,18 +211,23 @@ service cloud.firestore {
           && delta() == playerDelta();
       }
 
-      // Class ideas: classmates and the teacher see approved ones; the teacher reviews.
+      // Class ideas: classmates see them right away; the teacher sees every idea and can hide or restore one.
       match /ideas/{id} {
-        function myVote() { return /databases/$(database)/documents/groups/$(gid)/ideas/$(id)/votes/$(request.auth.uid); }
-        allow read: if (isMember() && resource.data.status == 'approved') || (signedIn() && resource.data.uid == request.auth.uid) || isOwner();
+        function mine(kind) { return /databases/$(database)/documents/groups/$(gid)/ideas/$(id)/$(kind)/$(request.auth.uid); }
+        allow read: if (isMember() && resource.data.status == 'visible') || (signedIn() && resource.data.uid == request.auth.uid) || isOwner();
         allow create: if isMember() && newIdea();
-        allow update: if (isOwner() && reviewed()) || (isMember() && voteChanged(myVote()));
-        allow delete: if signedIn() && resource.data.uid == request.auth.uid && resource.data.status == 'pending';
+        allow update: if (isOwner() && adultSets()) || (isMember() && (voteChanged(mine('votes')) || reported(mine('reports'))));
+        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isOwner();
         match /votes/{uid} {
           function idea() { return /databases/$(database)/documents/groups/$(gid)/ideas/$(id); }
           allow get: if signedIn() && request.auth.uid == uid;
-          allow create: if isMember() && request.auth.uid == uid && voteDoc() && getAfter(idea()).data.votes == get(idea()).data.votes + 1;
+          allow create: if isMember() && request.auth.uid == uid && stamp() && getAfter(idea()).data.votes == get(idea()).data.votes + 1;
           allow delete: if signedIn() && request.auth.uid == uid && getAfter(idea()).data.votes == get(idea()).data.votes - 1;
+        }
+        match /reports/{uid} {
+          function idea() { return /databases/$(database)/documents/groups/$(gid)/ideas/$(id); }
+          allow get: if signedIn() && request.auth.uid == uid;
+          allow create: if isMember() && request.auth.uid == uid && stamp() && getAfter(idea()).data.reports == get(idea()).data.reports + 1;
         }
       }
     }
