@@ -11,8 +11,9 @@ import { SPECIMENS } from '../src/data/specimens.js';
  */
 export const MAX_IMAGE_CHARS = 1_400_000; // ~1 MB of JPEG as base64; the app sends ~768 px images
 const PROJECT = 'plasticpulse-a921c';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-const FALLBACK_MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite']; // free-tier models, tried when the main one is busy
+// Flash-Lite first: fast, less in demand, and plenty to tell a bottle from a tea bag. Others are fallbacks.
+const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash-lite'];
 const PER_PLAYER_PER_HOUR = 20;
 
 export interface ScanAnswer { specimenId: string | null; label: string; confidence: number }
@@ -59,10 +60,12 @@ confidence (0 to 1). Do not describe people, places or anything else in the phot
   const models = [...new Set([MODEL, ...FALLBACK_MODELS])];
   let res: Response | null = null, reason = '';
   for (const model of models) {
+    res = null;
+    try {
     res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(12_000),
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/jpeg', data: image } }] }],
         generationConfig: {
@@ -77,13 +80,17 @@ confidence (0 to 1). Do not describe people, places or anything else in the phot
         },
       }),
     });
+    } catch (err) {
+      console.error('gemini timeout or network error', model, err);
+      continue; // too slow: try the next model
+    }
     if (res.ok) break;
     // Gemini's own short reason (never contains the key), to tell a bad key from a busy model.
     reason = await res.json().then((e) => String(e?.error?.message ?? ''), () => '');
     console.error('gemini error', model, res.status, reason);
     if (![404, 500, 503].includes(res.status)) break;
   }
-  if (!res) throw new ScanError(502, 'no-model');
+  if (!res) throw new ScanError(429, 'busy'); // every model timed out: shown as "resting"
   if (res.status === 429) throw new ScanError(429, 'daily-limit');
   if (res.status === 503 || res.status === 500) throw new ScanError(429, 'busy', reason.slice(0, 200)); // shown as "resting"
   if (!res.ok) throw new ScanError(502, `gemini-${res.status}`, reason.slice(0, 200));

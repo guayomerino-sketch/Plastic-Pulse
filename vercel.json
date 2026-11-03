@@ -1,5 +1,6 @@
 {
   "functions": {
-    "api/vitals.ts": { "maxDuration": 30 }
+    "api/vitals.ts": { "maxDuration": 30 },
+    "api/scan.ts": { "maxDuration": 45 }
   }
 }
