@@ -1,0 +1,8 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "plastic-pulse", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "preview", "--port", "4173", "--strictPort"], "port": 4173 },
+    { "name": "plastic-pulse-dev", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "--port", "5173", "--strictPort"], "port": 5173 },
+    { "name": "plastic-pulse-emulators", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:emulators"], "port": 5173 }
+  ]
+}

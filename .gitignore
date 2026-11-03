@@ -28,7 +28,7 @@ firebase-debug.log
 firestore-debug.log
 .firebase/
 
-# Secrets (the Gemini key lives in Vercel, never in Git)
+# Secrets (the AI scanner key lives in Vercel, never in Git)
 .env
 .env.*
 !.env.example
