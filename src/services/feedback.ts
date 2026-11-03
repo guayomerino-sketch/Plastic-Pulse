@@ -1,7 +1,7 @@
 import { connectCloud } from './firebase';
 
 /**
- * Pilot feedback, saved to Firestore `feedback/{auto id}`.
+ * Player feedback, saved to Firestore `feedback/{auto id}`.
  * Players can only add feedback, never read it; read it in the Firebase console.
  */
 export const COME_BACK = ['yes', 'maybe', 'no'] as const;
@@ -13,6 +13,10 @@ export interface FeedbackForm {
   confusing: string;
   comeBack: ComeBack | '';
 }
+
+// Young players: feedback must not carry contact details. Same patterns as firestore.rules.
+const CONTACT = [/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}/, /[0-9][0-9 ()+.-]{6,}[0-9]/, /(https?:\/\/|www[.])/i];
+export const hasContactDetails = (t: string) => CONTACT.some((re) => re.test(t));
 
 export async function sendFeedback(f: FeedbackForm): Promise<void> {
   const { db, uid } = await connectCloud();

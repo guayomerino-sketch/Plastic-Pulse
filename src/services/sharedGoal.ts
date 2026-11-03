@@ -13,6 +13,8 @@ import { SHARED_GOAL } from '../data/content';
  * masses in specimens.ts, never from the AI.
  */
 export const MAX_GRAMS_PER_CHOICE = 50; // keep in sync with firestore.rules
+/** Anti-spam: one player can add at most this much to the shared goal per week (firestore.rules). */
+export const MAX_GRAMS_PER_PLAYER_WEEK = 500;
 
 /** ISO week id, e.g. "2026-W44". Weeks start on Monday (UTC). */
 export function weekId(now = new Date()): string {
@@ -37,11 +39,12 @@ export async function contribute(grams: number): Promise<void> {
   if (!(grams > 0)) return;
   const g = Math.min(grams, MAX_GRAMS_PER_CHOICE);
   const { db, uid } = await connectCloud();
-  const { doc, writeBatch, increment } = await import('firebase/firestore');
+  const { doc, writeBatch, increment, serverTimestamp } = await import('firebase/firestore');
   const week = weekId();
   const batch = writeBatch(db);
   batch.set(doc(db, 'goals', week), { grams: increment(g), targetGrams: SHARED_GOAL.targetGrams }, { merge: true });
-  batch.set(doc(db, 'goals', week, 'players', uid), { grams: increment(g) }, { merge: true });
+  // `at` lets the rules enforce a short pause between choices.
+  batch.set(doc(db, 'goals', week, 'players', uid), { grams: increment(g), at: serverTimestamp() }, { merge: true });
   await batch.commit();
 }
 
@@ -62,7 +65,7 @@ export function useSharedGoal(): GoalStatus {
       stop = [
         onSnapshot(doc(db, 'goals', week), (s) => {
           const d = s.data();
-          total = { grams: d?.grams ?? 0, targetGrams: d?.targetGrams ?? SHARED_GOAL.targetGrams };
+          total = { grams: d?.grams ?? 0, targetGrams: SHARED_GOAL.targetGrams }; // the current goal, even for a week begun under an older one
           publish();
         }, fail),
         onSnapshot(doc(db, 'goals', week, 'players', uid), (s) => { mine = s.data()?.grams ?? 0; publish(); }, fail),

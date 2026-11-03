@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { PRIVACY_NOTE } from '../data/content';
-import { COME_BACK, FEEDBACK_MAX, sendFeedback, type FeedbackForm } from '../services/feedback';
+import { COME_BACK, FEEDBACK_MAX, hasContactDetails, sendFeedback, type FeedbackForm } from '../services/feedback';
 
 const COME_BACK_LABEL = { yes: 'Yes', maybe: 'Maybe', no: 'No' } as const;
 
 export default function Feedback({ onDone }: { onDone: () => void }) {
   const [form, setForm] = useState<FeedbackForm>({ liked: '', confusing: '', comeBack: '' });
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const valid = form.comeBack !== '' || form.liked.trim().length > 0 || form.confusing.trim().length > 0;
+  const contact = hasContactDetails(form.liked) || hasContactDetails(form.confusing);
+  const valid = !contact && (form.comeBack !== '' || form.liked.trim().length > 0 || form.confusing.trim().length > 0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +37,9 @@ export default function Feedback({ onDone }: { onDone: () => void }) {
   return (
     <div className="screen">
       <header className="screen-head">
-        <div className="label accent">Pilot · field report</div>
+        <div className="label accent">Field report</div>
         <h1>Tell us what you think</h1>
-        <p className="muted">You are one of the first people to play Plastic Pulse. Three quick questions.</p>
+        <p className="muted">Plastic Pulse is still growing, and your answers decide what we build next. Three quick questions.</p>
       </header>
 
       <form className="glass panel form" onSubmit={submit}>
@@ -57,6 +58,7 @@ export default function Feedback({ onDone }: { onDone: () => void }) {
           </div>
         </fieldset>
         <p className="note">Please don’t write your name, school or phone number. {PRIVACY_NOTE}</p>
+        {contact && <p className="note warn-text" role="alert">Please remove email addresses, phone numbers and links. Feedback stays anonymous.</p>}
         {status === 'error' && <p className="note warn-text">Couldn’t send. Check your connection and try again.</p>}
         <div className="row">
           <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>

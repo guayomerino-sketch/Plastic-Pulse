@@ -48,7 +48,9 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 
 ## Decisions so far
 
-- The shared goal is 2 kg per week for the pilot (`SHARED_GOAL` in `content.ts`, `targetGrams()` in `firestore.rules`;
+- The shared goal was 2 kg per week for the pilot; from November 2026 it is 20 kg for an open audience (`SHARED_GOAL` in `content.ts`, `targetGrams()` in `firestore.rules`;
   change both and redeploy the rules). The Phase 1 prototype showed 50 t as sample data, far out of reach for a new game.
 - One choice can add at most 50 g to the shared goal (`MAX_GRAMS_PER_CHOICE`). Grams come only from `specimens.ts`.
 - Each player's weekly part is readable only by that player.
+- Anti-spam (firestore.rules): one player adds at most 500 g per week to the shared goal, with 3 seconds between choices. Feedback rejects emails, phone numbers and links (same patterns in `src/services/feedback.ts`).
+- The intro says the game is made for players aged 13 and up.

@@ -3,7 +3,7 @@ import type { ChoiceAction, ScreenId } from './types';
 import { useGame, rankFor } from './game/store';
 import { World3D, isWebGLAvailable } from './world/World3D';
 import { Music } from './audio/music';
-import { GOODALL_QUOTE, HOPEFUL_LINES, PRIVACY_NOTE, SONG, SORROW_LINES, currentProblem } from './data/content';
+import { AGE_NOTE, GOODALL_QUOTE, HOPEFUL_LINES, PRIVACY_NOTE, SONG, SORROW_LINES, currentProblem } from './data/content';
 import { HealthMeter, Icon } from './components/ui';
 import { DISCOVERY_XP, specimenById } from './data/specimens';
 import { contribute } from './services/sharedGoal';
@@ -201,7 +201,7 @@ export default function App() {
             <blockquote className="quote">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
             <button className="enter" onClick={enter}>Enter the Biome <Icon name="arrow" size={18} /></button>
             <div className="credit">Sound on · instrumental · “{SONG.title}” by {SONG.credit}</div>
-            <div className="credit">{PRIVACY_NOTE}</div>
+            <div className="credit">{PRIVACY_NOTE} {AGE_NOTE}</div>
           </div>
         </div>
       )}

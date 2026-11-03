@@ -9,7 +9,9 @@ service cloud.firestore {
 
     // Keep in sync with src/services/sharedGoal.ts and src/data/content.ts.
     function maxGramsPerChoice() { return 50; }
-    function targetGrams() { return 2000; }
+    function maxGramsPerPlayerWeek() { return 500; }
+    function secondsBetweenChoices() { return 3; }
+    function targetGrams() { return 20000; }
 
     function validDelta(d) { return d is number && d > 0 && d <= maxGramsPerChoice(); }
 
@@ -30,28 +32,44 @@ service cloud.firestore {
         && validDelta(request.resource.data.grams)
         && playerGrewBy(request.resource.data.grams);
 
+      // targetGrams may only move to the current target (a week started under an older goal catches up).
       allow update: if signedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grams'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grams', 'targetGrams'])
+        && request.resource.data.targetGrams == targetGrams()
         && validDelta(request.resource.data.grams - resource.data.grams)
         && playerGrewBy(request.resource.data.grams - resource.data.grams);
 
       // One player's part of the week. Only that player can see it: no public individual rankings.
+      // Anti-spam: at most maxGramsPerPlayerWeek() per player per week, and one choice every few seconds.
       match /players/{uid} {
         function playerDelta() {
           return request.resource.data.grams - (resource == null ? 0 : resource.data.grams);
         }
+        function cooledDown() {
+          return resource == null || resource.data.get('at', null) == null
+            || request.time > resource.data.at + duration.value(secondsBetweenChoices(), 's');
+        }
         allow read: if signedIn() && request.auth.uid == uid;
         allow create, update: if signedIn() && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['grams'])
+          && request.resource.data.keys().hasOnly(['grams', 'at'])
+          && request.resource.data.at == request.time
+          && cooledDown()
           && validDelta(playerDelta())
+          && request.resource.data.grams <= maxGramsPerPlayerWeek()
           && getAfter(goalPath()).data.grams - gramsBefore(goalPath()) == playerDelta();
       }
     }
 
-    // Pilot feedback: players can add, nobody can read or change it from the app.
-    // Read it in the Firebase console. Keep FEEDBACK_MAX in sync with src/services/feedback.ts.
+    // Player feedback: players can add, nobody can read or change it from the app.
+    // Read it in the Firebase console. Keep FEEDBACK_MAX and the contact patterns in sync with src/services/feedback.ts.
     match /feedback/{id} {
-      function shortText(t) { return t is string && t.size() <= 1000; }
+      // Young players: no email addresses, phone numbers or links in free text.
+      function noContact(t) {
+        return !t.matches('(?s).*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}.*')
+          && !t.matches('(?s).*[0-9][0-9 ()+.-]{6,}[0-9].*')
+          && !t.matches('(?si).*(https?://|www[.]).*');
+      }
+      function shortText(t) { return t is string && t.size() <= 1000 && noContact(t); }
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['uid', 'liked', 'confusing', 'comeBack', 'createdAt'])
         && request.resource.data.uid == request.auth.uid
