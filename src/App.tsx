@@ -7,6 +7,7 @@ import { AGE_NOTE, GOODALL_QUOTE, HOPEFUL_LINES, PRIVACY_NOTE, SONG, SORROW_LINE
 import { HealthMeter, Icon } from './components/ui';
 import { DISCOVERY_XP, specimenById } from './data/specimens';
 import { contribute } from './services/sharedGoal';
+import { useAccount } from './services/account';
 import type { Vitals } from './vitals/types';
 import Pulse from './screens/Pulse';
 import Scan from './screens/Scan';
@@ -26,6 +27,7 @@ const NAV: { id: ScreenId; label: string; icon: string }[] = [
 
 export default function App() {
   const { state, dispatch } = useGame();
+  const account = useAccount(); // one instance: it merges and saves progress for Google sign-in
   const [entered, setEntered] = useState(false);
   const [screen, setScreen] = useState<ScreenId>('pulse');
   const [scanId, setScanId] = useState<string | null>(null);
@@ -164,7 +166,7 @@ export default function App() {
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
         {screen === 'solutions' && <Solutions />}
-        {screen === 'world' && <World onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
+        {screen === 'world' && <World account={account} onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
         {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
         {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
       </main>

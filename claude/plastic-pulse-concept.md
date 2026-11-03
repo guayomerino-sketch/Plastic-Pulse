@@ -24,7 +24,7 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
    - [x] Firebase SDK, loaded lazily (`src/services/firebase.ts`), anonymous sign-in.
    - [x] Live weekly shared goal (`src/services/sharedGoal.ts`, World screen), rules + emulator tests.
    - [x] Anonymous sign-in enabled (auto clean-up off, so players keep their id), `firestore.rules` deployed. Checked live: sign-in and the goal read work.
-   - [ ] Optional Google sign-in that upgrades the anonymous account, and cloud save of progress.
+   - [x] Optional Google sign-in that upgrades the anonymous account in place, and cloud save of progress (`users/{uid}`, merged across devices; `src/services/account.ts`). Sign-out clears the device for shared school computers.
 3. Specimen Book (from pilot feedback):
    - [x] Book tab, 3D hologram for every specimen, rarity (Common / Hidden / Rare), sets, first-discovery reveal and bonus XP.
    - [x] Batch 2: 8 more sourced plastics (15 total). They have no sourced mass yet, so they add 0 g to the shared goal.

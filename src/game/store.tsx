@@ -36,6 +36,7 @@ export type Action =
   | { type: 'music'; on: boolean }
   | { type: 'study'; specimenId: string }
   | { type: 'discovery/clear' }
+  | { type: 'merge'; cloud: GameState }
   | { type: 'reset' };
 
 function touchStreak(s: GameState): GameState {
@@ -106,9 +107,49 @@ export function reducer(s: GameState, a: Action): GameState {
     }
     case 'discovery/clear':
       return { ...s, discovery: null };
+    case 'merge':
+      return mergeStates(s, a.cloud);
     case 'reset':
       return initialState;
   }
+}
+
+/**
+ * Combine this device's progress with progress saved in the player's account, so signing in
+ * on a second device never loses anything. Collections are joined; totals take the larger value.
+ */
+export function mergeStates(local: GameState, cloud: GameState): GameState {
+  const c = { ...initialState, ...cloud };
+  const key = (l: GameState['logs'][number]) => `${l.at}|${l.specimenId}|${l.action}`;
+  const logs = [...new Map([...c.logs, ...local.logs].map((l) => [key(l), l])).values()].sort((a, b) => a.at - b.at).slice(-2000);
+  const union = (a: string[], b: string[]) => [...new Set([...a, ...b])];
+  const lab: GameState['lab'] = { ...c.lab };
+  for (const [id, p] of Object.entries(local.lab)) {
+    const q = lab[id];
+    const score = (x: typeof p) => (x.completed ? 1000 : 0) + x.done.filter(Boolean).length;
+    if (!q || score(p) > score(q)) lab[id] = p;
+  }
+  const ideas = [...new Map([...c.ideas, ...local.ideas].map((i) => [i.id, i])).values()];
+  const ahead = local.xp >= c.xp ? local : c, behind = ahead === local ? c : local;
+  // XP the other side earned that the leading side never saw: its own choices and its first discoveries.
+  const aheadKeys = new Set(ahead.logs.map(key));
+  const found = (st: GameState) => new Set([...st.logs.map((l) => l.specimenId), ...st.studied]);
+  const aheadFound = found(ahead);
+  const extraXp = behind.logs.filter((l) => !aheadKeys.has(key(l))).reduce((n, l) => n + XP[l.action], 0)
+    + [...found(behind)].filter((id) => !aheadFound.has(id)).reduce((n, id) => n + DISCOVERY_XP[specimenById(id).rarity], 0);
+  const lastDay = [local.lastActiveDay, c.lastActiveDay].filter(Boolean).sort().pop() ?? null;
+  return {
+    ...ahead,
+    version: 1,
+    xp: ahead.xp + extraXp,
+    streakDays: Math.max(local.streakDays, c.streakDays),
+    lastActiveDay: lastDay,
+    logs, lab, ideas,
+    studied: union(c.studied, local.studied),
+    votedIdeaIds: union(c.votedIdeaIds, local.votedIdeaIds),
+    musicOn: local.musicOn,
+    discovery: null,
+  };
 }
 
 function load(): GameState {

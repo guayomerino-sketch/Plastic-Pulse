@@ -4,6 +4,9 @@ import { rankFor, useGame } from '../game/store';
 import { MAX_GRAMS_PER_PLAYER_WEEK, useSharedGoal } from '../services/sharedGoal';
 import { dateLabel, useVitals } from '../vitals/useVitals';
 import { REEF_LEVELS, type Source, type Vitals } from '../vitals/types';
+import type { useAccount } from '../services/account';
+
+type AccountApi = ReturnType<typeof useAccount>;
 
 const mass = (g: number) => (g >= 1_000_000 ? `${(g / 1_000_000).toFixed(1)} t` : g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${Math.round(g)} g`);
 const pct = (a: number, b: number) => Math.round(((a - b) / b) * 100);
@@ -13,13 +16,14 @@ type VitalId = 'co2' | 'arctic' | 'reef' | 'amazon';
 const PLACES: Record<VitalId, [number, number]> = { co2: [19.54, -155.58], arctic: [80, 0], reef: [-18, 147.5], amazon: [-3.4, -62.2] };
 
 interface Props {
+  account: AccountApi;
   onFeedback: () => void;
   onFocus: (place: [number, number] | null) => void;
   onZoomOut: () => void;
   onVitals: (v: Vitals) => void;
 }
 
-export default function World({ onFeedback, onFocus, onZoomOut, onVitals }: Props) {
+export default function World({ account, onFeedback, onFocus, onZoomOut, onVitals }: Props) {
   const [tab, setTab] = useState<'planet' | 'us'>('planet');
   const [open, setOpen] = useState<VitalId | null>(null);
   const vitals = useVitals();
@@ -36,7 +40,7 @@ export default function World({ onFeedback, onFocus, onZoomOut, onVitals }: Prop
           <button role="tab" aria-selected={tab === 'planet'} className={tab === 'planet' ? 'on' : ''} onClick={() => { setTab('planet'); }}>Planet’s vital signs</button>
           <button role="tab" aria-selected={tab === 'us'} className={tab === 'us' ? 'on' : ''} onClick={() => { setTab('us'); pick(null); }}>Our choices</button>
         </div>
-        {tab === 'planet' ? <Planet status={vitals.state} v={v} open={open} pick={pick} onZoomOut={onZoomOut} /> : <Us onFeedback={onFeedback} />}
+        {tab === 'planet' ? <Planet status={vitals.state} v={v} open={open} pick={pick} onZoomOut={onZoomOut} /> : <Us account={account} onFeedback={onFeedback} />}
       </section>
     </div>
   );
@@ -155,7 +159,7 @@ function Detail({ id, v, onBack }: { id: VitalId; v: Vitals; onBack: () => void 
 
 /* ---------- our choices ---------- */
 
-function Us({ onFeedback }: { onFeedback: () => void }) {
+function Us({ account, onFeedback }: { account: AccountApi; onFeedback: () => void }) {
   const { state } = useGame();
   const rank = rankFor(state);
   const goal = useSharedGoal();
@@ -163,6 +167,7 @@ function Us({ onFeedback }: { onFeedback: () => void }) {
   const p = live ? Math.min(100, Math.round((live.grams / live.targetGrams) * 100)) : 0;
   return (
     <>
+      <AccountCard a={account} />
       <div className="label">This week · one shared goal</div>
       <div className="title">{SHARED_GOAL.label}</div>
       <div className="bar thick"><i className="tone-good" style={{ width: `${p}%` }} /></div>
@@ -184,5 +189,36 @@ function Us({ onFeedback }: { onFeedback: () => void }) {
       <div className="tag">Each light on Earth is a community of players · city lights are sample data for now</div>
       <button className="btn ghost-violet" onClick={onFeedback}>Tell us what you think</button>
     </>
+  );
+}
+
+/* ---------- optional Google sign-in ---------- */
+
+function AccountCard({ a }: { a: AccountApi }) {
+  const [busy, setBusy] = useState(false);
+  const run = (f: () => Promise<void>) => async () => { setBusy(true); try { await f(); } finally { setBusy(false); } };
+  if (!a.account) return null;
+  return (
+    <div className="account">
+      {a.account.kind === 'google' ? (
+        <>
+          <div className="grow">
+            <div className="label accent">Signed in with Google</div>
+            <p className="note">{a.syncing ? 'Loading your saved progress…' : `${a.account.name ? `Hi ${a.account.name}! ` : ''}Your progress is saved to your account on every device.`}</p>
+          </div>
+          <button className="btn ghost small" onClick={run(a.signOut)} disabled={busy}>Sign out</button>
+        </>
+      ) : (
+        <>
+          <div className="grow">
+            <div className="label">Playing as a guest</div>
+            <p className="note">Your progress is saved on this device only. Sign in to keep it on every device.</p>
+          </div>
+          <button className="btn primary small" onClick={run(a.signIn)} disabled={busy}>{busy ? 'Opening…' : 'Sign in with Google'}</button>
+        </>
+      )}
+      {a.error && <p className="note warn-text" role="alert">{a.error}</p>}
+      <p className="tag">Optional. Google is used only to save your progress. Your name and email are never shown to other players or stored in the game.</p>
+    </div>
   );
 }

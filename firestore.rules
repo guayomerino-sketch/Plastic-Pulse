@@ -60,6 +60,18 @@ service cloud.firestore {
       }
     }
 
+    // Saved progress for players signed in with Google: only that player can read or write it.
+    // The game state is stored as one JSON string; no name or email is ever stored here.
+    match /users/{uid} {
+      function isGoogle() { return request.auth.token.firebase.sign_in_provider == 'google.com'; }
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid && isGoogle()
+        && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
+        && request.resource.data.state is string
+        && request.resource.data.state.size() <= 900000
+        && request.resource.data.updatedAt == request.time;
+    }
+
     // Player feedback: players can add, nobody can read or change it from the app.
     // Read it in the Firebase console. Keep FEEDBACK_MAX and the contact patterns in sync with src/services/feedback.ts.
     match /feedback/{id} {
