@@ -2,7 +2,7 @@ import { ScanError, identify, verifyPlayer } from '../server/scan.js'; // .js: N
 
 /**
  * POST /api/scan  { image: <base64 JPEG> }  →  { specimenId, label, confidence }
- * Signed-in players only (guests included). Photos are sent to Gemini to identify the item and are never stored.
+ * Signed-in players only (guests included). Photos are sent to Anthropic’s Claude AI to identify the item and are never stored.
  */
 export async function POST(request: Request) {
   try {

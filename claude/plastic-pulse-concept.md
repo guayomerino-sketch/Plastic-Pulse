@@ -34,7 +34,7 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 4. Country ranking (countries only, never individuals) and real city lights on the Earth view.
 5. Community ideas and voting in the Solution Lab, with moderation before ideas go public (young players).
 6. Scanner: a server function that holds the Gemini key.
-   - [x] `api/scan.ts` + `server/scan.ts` on Vercel (no Blaze plan needed). Signed-in players only (Firebase ID token checked with jose), 20 scans per player per hour, images ~768 px and never stored. Gemini only picks one of our specimen ids; facts come from specimens.ts. Key: `GEMINI_API_KEY` in Vercel env, from a Google project WITHOUT billing (can't be charged; 429 when the free allowance runs out). Model: `GEMINI_MODEL`, default `gemini-flash-latest`. Free-tier inputs may be used by Google, so the app says to photograph only the item, no people.
+   - [x] `api/scan.ts` + `server/scan.ts` on Vercel (no Blaze plan needed). Signed-in players only (Firebase ID token checked with jose), 30 scans per player per hour, images ~768 px and never stored. **AI: Anthropic Claude** (switched from Gemini on 2026-11-03: Gemini API terms forbid apps likely used by under-18s; Anthropic allows teen products with safeguards: teen-safe system prompt, item-only, AI disclosure, no storage, rate limits). Key: `ANTHROPIC_API_KEY` in Vercel env (Secret), with a monthly spend limit in the Anthropic Console. Model: `ANTHROPIC_MODEL`, default `claude-opus-5-5`, effort low, structured JSON output, `fallbacks: "default"`. Refusal or no object → 422, shown as "No object found".
 7. Share cards.
 8. Class codes for schools.
    - [x] Teachers (Google sign-in) create classes with a 6-character code and a join link (`?class=CODE`). Students join without accounts or names; the teacher sees the member count and the class's weekly total (3 kg goal), never individuals. Built as general groups (`kind: 'class' | 'household'`) so households can reuse it. `src/services/groups.ts`, `src/components/ClassCard.tsx`.
@@ -70,3 +70,9 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
   (no grams: masses aren't sourced), collected in the Book, and "Pitch a real-life solution" opens the Solution Lab.
 - Anonymous `scanTally/{slug}` (label + material + count, moderator-only read) shows what to source next.
 - Next: source the most-scanned items as full specimens; households.
+
+
+## Privacy
+- `public/privacy.html`: plain-language privacy page, linked from the intro credit and the You page.
+- You → Delete my data (`src/services/deleteData.ts`): deletes own ideas, class membership, `users/{uid}`, and the Firebase Auth user; needs `allow delete` on users (rules).
+- Weekly usage check in Google Calendar, Tuesdays Nov 10 – Dec 1 2026.

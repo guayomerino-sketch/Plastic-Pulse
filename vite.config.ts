@@ -11,7 +11,7 @@ const devVitals = (): Plugin => ({
       res.end(JSON.stringify({ city: 'Los Angeles', country: 'US', lat: 34.1, lng: -118.2 }));
     });
     // The scanner locally: same code as api/scan.ts, minus the sign-in check (the emulators' tokens aren't signed).
-    // With no GEMINI_API_KEY in .env.local it answers 'not-configured', like production before the key is added.
+    // With no ANTHROPIC_API_KEY in .env.local it answers 'not-configured', like production before the key is added.
     server.middlewares.use('/api/scan', (req, res) => {
       const chunks: Buffer[] = [];
       req.on('data', (c) => chunks.push(c));
@@ -44,10 +44,10 @@ const devVitals = (): Plugin => ({
 export default defineConfig(({ mode }) => {
   // Load VITE_ prefixed env vars so import.meta.env.VITE_* is available at runtime
   loadEnv(mode, process.cwd(), 'VITE_');
-  // Server-only secrets for the local api routes (never exposed to the app): GEMINI_API_KEY from .env.local.
+  // Server-only secrets for the local api routes (never exposed to the app): ANTHROPIC_API_KEY from .env.local.
   const server = loadEnv(mode, process.cwd(), '');
-  if (server.GEMINI_API_KEY) process.env.GEMINI_API_KEY ??= server.GEMINI_API_KEY;
-  if (server.GEMINI_MODEL) process.env.GEMINI_MODEL ??= server.GEMINI_MODEL;
+  if (server.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY ??= server.ANTHROPIC_API_KEY;
+  if (server.ANTHROPIC_MODEL) process.env.ANTHROPIC_MODEL ??= server.ANTHROPIC_MODEL;
   return {
     plugins: [react(), devVitals()],
     build: {

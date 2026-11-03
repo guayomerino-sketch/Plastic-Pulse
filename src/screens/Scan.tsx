@@ -3,7 +3,7 @@ import { SPECIMENS, specimenById } from '../data/specimens';
 import SpecimenCard from '../components/SpecimenCard';
 import { Icon } from '../components/ui';
 import { useGame } from '../game/store';
-import { identifyPlastic, ScannerBusy, ScannerNotConfigured, slugify, tallyUnmatched } from '../services/scanner';
+import { identifyPlastic, ScannerBusy, ScannerNoObject, ScannerNotConfigured, slugify, tallyUnmatched } from '../services/scanner';
 import FieldFindCard from '../components/FieldFindCard';
 import { XP } from '../data/content';
 
@@ -43,7 +43,8 @@ export default function Scan({ initialId, onToLab, onPitch }: { initialId?: stri
     } catch (err) {
       setStatus('error');
       setNote(err instanceof ScannerNotConfigured ? 'The AI scanner isn’t switched on yet. For now, pick what you found below.'
-        : err instanceof ScannerBusy ? 'The scanner is resting for now (it has a daily limit). Pick what you found below, or try again later.'
+        : err instanceof ScannerBusy ? 'The scanner is resting for now (it has a limit). Pick what you found below, or try again later.'
+        : err instanceof ScannerNoObject ? 'No object found in that photo. Try again with just the item, up close.'
         : 'The scan didn’t go through. Check your connection, or pick what you found below.');
     }
   };
@@ -67,7 +68,7 @@ export default function Scan({ initialId, onToLab, onPitch }: { initialId?: stri
       </button>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
       {note && <p className="note" role="status">{note}</p>}
-      {!note && <p className="note">Scan anything: a carton, a toy, a phone case. Photograph only the item, with no people in the picture. The photo goes to Google’s Gemini AI to recognise it and is never stored by Plastic Pulse. Facts come from our sourced files, not the AI.</p>}
+      {!note && <p className="note">Scan anything: a carton, a toy, a phone case. Photograph only the item, with no people in the picture. The photo goes to Anthropic’s Claude AI to recognise it and is never stored. Facts come from our sourced files, not the AI.</p>}
 
       {find && <FieldFindCard find={find} onPitch={onPitch} />}
 

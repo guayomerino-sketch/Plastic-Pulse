@@ -10,6 +10,7 @@
     "dev:emulators": "firebase emulators:exec --only auth,firestore --project demo-plastic-pulse --ui \"VITE_FIREBASE_EMULATORS=1 vite\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@google/genai": "^1.32.0",
     "d3": "^7.9.0",
     "firebase": "^13.1.0",

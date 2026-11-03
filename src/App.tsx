@@ -218,7 +218,7 @@ export default function App() {
             <blockquote className="quote">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
             <button className="enter" onClick={enter}>Enter the Biome <Icon name="arrow" size={18} /></button>
             <div className="credit">Sound on · instrumental · “{SONG.title}” by {SONG.credit}</div>
-            <div className="credit">{PRIVACY_NOTE} {AGE_NOTE}</div>
+            <div className="credit">{PRIVACY_NOTE} {AGE_NOTE} <a href="/privacy.html" target="_blank" rel="noopener">Privacy</a></div>
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import { isMaterialId, type MaterialId } from '../data/materials';
 
 /**
  * AI photo scanner. The photo goes to our own server function (api/scan.ts), which holds the
- * Gemini key: the key never ships inside the app. Gemini names any item and guesses its plastic
+ * Anthropic key: the key never ships inside the app. Claude names any item and guesses its plastic
  * family; facts come from our sourced specimens and materials tables, never from the AI.
  * Photos are downscaled first and never stored.
  */
@@ -20,6 +20,8 @@ export interface ScanResult {
 export class ScannerNotConfigured extends Error {}
 /** The free daily allowance is used up, or this player scanned a lot this hour. */
 export class ScannerBusy extends Error {}
+/** No everyday object in the photo (for example only a person), or the AI declined it. */
+export class ScannerNoObject extends Error {}
 
 export async function identifyPlastic(file: File): Promise<ScanResult> {
   const image = await downscale(file, 768);
@@ -33,6 +35,7 @@ export async function identifyPlastic(file: File): Promise<ScanResult> {
   });
   if (res.status === 503) throw new ScannerNotConfigured('AI scanner not connected yet');
   if (res.status === 429) throw new ScannerBusy('scanner busy');
+  if (res.status === 422) throw new ScannerNoObject('no object');
   if (!res.ok) throw new Error(`Scanner error ${res.status}`);
   const data = (await res.json()) as Partial<ScanResult>;
   const known = SPECIMENS.some((s) => s.id === data.specimenId);

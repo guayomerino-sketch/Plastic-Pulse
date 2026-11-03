@@ -77,6 +77,7 @@ service cloud.firestore {
         && request.resource.data.state is string
         && request.resource.data.state.size() <= 900000
         && request.resource.data.updatedAt == request.time;
+      allow delete: if signedIn() && request.auth.uid == uid; // "Delete my data"
     }
 
     // ---- Community ideas (Solution Lab) ----

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plastic Pulse · Privacy</title>
+  <meta name="description" content="What Plastic Pulse keeps about you, and what it never does, in plain words." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #04070f; --ink: #e6eefb; --ink-strong: #f6f9ff; --muted: #9fb3cc;
+      --teal: #3ee6c8; --teal-soft: #7ff3dc; --violet: #b9a4ff; --amber: #ffc566;
+      --glass: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+      --glass-line: rgba(255,255,255,0.14);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--ink); font: 400 16px/1.6 Inter, ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(120% 50% at 50% 0%, #0b3a45 0%, #071a2c 45%, var(--bg) 100%) fixed, var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+    .label { font: 500 11px/1.4 'JetBrains Mono', ui-monospace, monospace; letter-spacing: 1.5px; text-transform: uppercase; color: var(--teal); }
+    h1 { font: 700 clamp(30px, 7vw, 44px)/1.1 'Space Grotesk', system-ui, sans-serif; color: var(--ink-strong); margin: 8px 0 12px; }
+    h2 { font: 600 20px/1.3 'Space Grotesk', system-ui, sans-serif; color: var(--ink-strong); margin: 0 0 8px; }
+    p, li { color: var(--ink); }
+    .lead { color: var(--muted); font-size: 17px; margin: 0 0 28px; }
+    section { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 18px; padding: 20px 20px 8px; margin: 0 0 16px; }
+    ul { padding-left: 20px; margin: 0 0 12px; }
+    li { margin: 0 0 6px; }
+    .short li::marker { color: var(--teal); }
+    .never li::marker { color: var(--amber); }
+    b { color: var(--ink-strong); font-weight: 600; }
+    a { color: var(--teal-soft); }
+    .muted { color: var(--muted); font-size: 14px; }
+    .back { display: inline-block; margin-top: 20px; padding: 12px 20px; border-radius: 999px; background: linear-gradient(180deg, #8ffbe6, #3ee6c8 55%, #22b9a0); color: #03211c; font-weight: 600; text-decoration: none; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="label">Plastic Pulse · Privacy</div>
+  <h1>Your privacy, in plain words</h1>
+  <p class="lead">Plastic Pulse is a game for players aged 13 and up. Here is everything it keeps about you, why, and how to delete it.</p>
+
+  <section class="short">
+    <h2>The short version</h2>
+    <ul>
+      <li>We never ask for your name, email, school or phone number.</li>
+      <li>You play with a random player ID, not your name.</li>
+      <li>No ads. No tracking. We never sell anything about you.</li>
+      <li>Photos you scan are never stored.</li>
+      <li>You can delete everything any time: <b>You → Delete my data</b>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Saved on your phone or computer</h2>
+    <p>Your progress (XP, specimens, finds, streak) is saved in your browser so the game remembers you. Clearing your browser data erases it.</p>
+  </section>
+
+  <section>
+    <h2>Saved in our cloud</h2>
+    <p>The game uses Google Firebase to save a few things, all tied to your random player ID:</p>
+    <ul>
+      <li><b>Your share of the weekly goal:</b> how many grams of plastic you helped save. Only the totals are shown, never who added them.</li>
+      <li><b>Your class, if you join one:</b> that this player ID is in the class. Your teacher sees how many players joined, not who they are.</li>
+      <li><b>Ideas you share</b> in the Solution Lab, and your votes. Other players see your idea, never your name. Emails, phone numbers, links and rude words are blocked. You can delete your ideas any time.</li>
+      <li><b>Feedback</b> you send. Please leave out your name.</li>
+      <li><b>Names of scanned items</b> that aren’t in the Specimen Book yet, like “milk carton”, counted together so we know what to add next. Never the photo, never who scanned it.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Google sign-in (optional)</h2>
+    <p>You can sign in with Google to keep your progress on more than one device. Google tells Firebase your account email so you can sign back in. The game shows only your first name, only to you. Other players never see it, and it is not saved with your progress. Signing in is never required to play.</p>
+  </section>
+
+  <section>
+    <h2>Your city light on the globe</h2>
+    <p>Like every website, our host (Vercel) can tell roughly where a visit comes from. We round that to about 10 km and keep only the city name, added together with everyone else from that city. We never use GPS and never ask for your location.</p>
+  </section>
+
+  <section>
+    <h2>The AI scanner</h2>
+    <p>When you scan something, the photo is shrunk and sent to <b>Claude</b>, an AI made by Anthropic, which says what the object is and which plastic it may contain. Plastic Pulse never stores the photo. Anthropic does not use it to train its AI, and deletes it after a limited time. See <a href="https://privacy.anthropic.com" target="_blank" rel="noopener">Anthropic’s privacy center</a>.</p>
+    <p>The scanner is AI, so it can be wrong. The facts you read come from our sourced files, not from the AI.</p>
+    <p><b>Photograph only the item, with no people in the picture.</b></p>
+  </section>
+
+  <section class="never">
+    <h2>What we never do</h2>
+    <ul>
+      <li>Show your name or email to anyone.</li>
+      <li>Let players message each other.</li>
+      <li>Show ads, or sell or share your information for advertising.</li>
+      <li>Store your photos.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Deleting your data</h2>
+    <ul>
+      <li><b>Everything:</b> in the game, go to <b>You → Delete my data</b>. It erases your saved progress, your ideas, your class membership and your sign-in. The grams you added to weekly totals stay as plain numbers that can no longer be linked to anyone.</li>
+      <li><b>One idea:</b> tap Delete on it in the Solution Lab.</li>
+      <li><b>Your class:</b> leave it on the You page.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Who helps run the game</h2>
+    <ul>
+      <li><b>Google Firebase:</b> saves progress, classes and ideas.</li>
+      <li><b>Vercel:</b> hosts the website.</li>
+      <li><b>Anthropic:</b> the AI scanner.</li>
+      <li><b>Google:</b> the optional sign-in.</li>
+    </ul>
+    <p class="muted">If this page changes, the date below changes too.</p>
+  </section>
+
+  <p class="muted">Last updated November 3, 2026.</p>
+  <a class="back" href="/">Back to Plastic Pulse</a>
+</main>
+</body>
+</html>

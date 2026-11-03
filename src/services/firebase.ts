@@ -5,7 +5,7 @@ import type { Auth, User } from 'firebase/auth';
  * Firebase connection (project "PlasticPulse", plasticpulse-a921c).
  *
  * This web config is a public identifier, not a secret: every Firebase web app ships it.
- * What protects the data is firestore.rules. Secret keys (Gemini) still never go in the app.
+ * What protects the data is firestore.rules. Secret keys (the AI scanner key) still never go in the app.
  *
  * Players sign in anonymously: they get a private id without giving a name or email,
  * which fits a 13+ audience and the "no public individual rankings" rule.
