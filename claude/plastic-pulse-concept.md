@@ -61,3 +61,11 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 - Done: `firestore.rules` for public ideas (`ideas/`, moderator in `admins/{uid}`) and class ideas (`groups/{gid}/ideas/`, teacher reviews), one vote per player; 107 rules tests pass. Service: `src/services/ideas.ts`.
 - Left: rebuild `src/screens/Solutions.tsx` on the service (pitch → review → vote, review queues for moderator and teachers), test in the emulators, deploy rules, add Eduardo's uid to `admins/` in the Firebase console.
 - Done: decluttered World → Our choices; account, class, sharing and feedback moved to the You page (profile button in the top bar). Class join links open You.
+
+## Next session (from Eduardo, 3 Nov 2026)
+- Scanner didn't recognise the plastic from a milk carton: by design it only picks one of the 15 sourced specimens.
+  Plan: (1) source common household items next (milk/juice cartons with PE lining and HDPE/PP cap, yogurt pots,
+  cling film, detergent bottles, sandwich bags, clamshells); (2) for anything else, Gemini returns a material family
+  (resin code) → a "mystery plastic" entry with XP but no invented facts or grams; (3) anonymous tally of unmatched
+  scan labels (label only, never photo or player) to choose what to source next.
+- Then households (groups with kind 'household', family goal).
