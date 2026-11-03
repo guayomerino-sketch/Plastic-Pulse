@@ -17,6 +17,7 @@ import Solutions from './screens/Solutions';
 import World from './screens/World';
 import Feedback from './screens/Feedback';
 import Book from './screens/Book';
+import You from './screens/You';
 
 const NAV: { id: ScreenId; label: string; icon: string }[] = [
   { id: 'pulse', label: 'Pulse', icon: 'pulse' },
@@ -97,7 +98,7 @@ export default function App() {
     setEntered(true);
     if (state.musicOn) startMusic();
     worldRef.current?.purify(1);
-    if (classCode && !state.group) go('world');
+    if (classCode && !state.group) go('you');
     window.setTimeout(() => showLyric(HOPEFUL_LINES[0]), 3500);
   };
 
@@ -157,6 +158,9 @@ export default function App() {
           <div className="row tight">
             <span className="xp-pill" title={rank.current.name}>{state.xp.toLocaleString()} XP</span>
             {state.streakDays > 0 && <span className="xp-pill amber" aria-label={`${state.streakDays}-day streak`}><Icon name="flame" size={13} /> {state.streakDays}</span>}
+            <button className={`iconbtn ${screen === 'you' ? 'on' : ''}`} aria-label="You: account, class and sharing" aria-current={screen === 'you' ? 'page' : undefined} onClick={() => go('you')}>
+              <Icon name="user" size={20} />
+            </button>
             <button className={`iconbtn ${musicPlaying ? 'on' : ''}`} aria-pressed={musicPlaying} aria-label={musicPlaying ? 'Pause music' : `Play music: ${SONG.title}`} onClick={toggleMusic}>
               <Icon name="music" size={20} />
             </button>
@@ -170,8 +174,9 @@ export default function App() {
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
         {screen === 'solutions' && <Solutions googleUid={account.account?.kind === 'google' ? account.account.uid : null} />}
-        {screen === 'world' && <World account={account} classCode={state.group ? '' : classCode} onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
-        {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
+        {screen === 'world' && <World onYou={() => go('you')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
+        {screen === 'feedback' && <Feedback onDone={() => go('you')} />}
+        {screen === 'you' && <You account={account} classCode={state.group ? '' : classCode} onFeedback={() => go('feedback')} />}
         {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
       </main>
 

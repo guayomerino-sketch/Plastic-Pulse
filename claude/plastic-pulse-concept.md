@@ -59,4 +59,4 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 ## In progress: community ideas (November 2026)
 - Done: `firestore.rules` for public ideas (`ideas/`, moderator in `admins/{uid}`) and class ideas (`groups/{gid}/ideas/`, teacher reviews), one vote per player; 107 rules tests pass. Service: `src/services/ideas.ts`.
 - Left: rebuild `src/screens/Solutions.tsx` on the service (pitch → review → vote, review queues for moderator and teachers), test in the emulators, deploy rules, add Eduardo's uid to `admins/` in the Firebase console.
-- Later: declutter the World → Our choices panel on desktop (user feedback).
+- Done: decluttered World → Our choices; account, class, sharing and feedback moved to the You page (profile button in the top bar). Class join links open You.

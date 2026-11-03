@@ -292,6 +292,8 @@ textarea, input { width: 100%; margin-top: 6px; background: rgba(0, 0, 0, 0.3); 
 
 /* classes */
 .class-card { flex-direction: column; align-items: stretch; }
+.class-card > * { width: 100%; }
+.class-card .row > .label, .class-card .row > .tag { white-space: nowrap; }
 .class-join { display: flex; flex-direction: column; gap: 6px; }
 .class-join input { margin-top: 0; }
 .code-input { flex: 1; min-width: 0; font: 600 20px var(--mono); letter-spacing: 6px; text-transform: uppercase; text-align: center; }
@@ -309,6 +311,19 @@ textarea, input { width: 100%; margin-top: 6px; background: rgba(0, 0, 0, 0.3); 
 .teacher-ideas { padding-top: 6px; }
 
 .share-btn { min-height: 44px; }
+
+.panel > .account { padding: 0; background: none; border: 0; }
+.mark, .xp-pill, .btn.small { white-space: nowrap; }
+.owned .row { flex-wrap: wrap; row-gap: 6px; }
+@media (max-width: 420px) {
+  .mark { font-size: 13px; letter-spacing: 2px; }
+  .topbar .row.tight { gap: 6px; }
+  .xp-pill { padding: 0 9px; font-size: 11px; }
+  .topbar .iconbtn { width: 40px; height: 40px; }
+}
+.class-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: 14px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-line); text-align: left; }
+.class-line:hover { background: rgba(255, 255, 255, 0.08); }
 
 /* world */
 .path { display: flex; gap: 4px; margin-top: 2px; }

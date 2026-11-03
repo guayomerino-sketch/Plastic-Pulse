@@ -14,6 +14,7 @@ const paths: Record<string, React.ReactNode> = {
   up: <path d="m18 15-6-6-6 6" />,
   back: <path d="m15 18-6-6 6-6" />,
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   check: <path d="M20 6 9 17l-5-5" />,
 };
 
