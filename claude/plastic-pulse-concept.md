@@ -33,7 +33,8 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
    - [x] Earth's vital signs, live: CO₂ (NOAA Mauna Loa), Arctic sea ice (NSIDC v4), Great Barrier Reef bleaching alerts (NOAA Coral Reef Watch), Amazon deforestation alerts (INPE DETER). Served by `api/vitals.ts` (Vercel function, cached 6 h); logic in `server/vitals.ts`. Climate Reanalyzer blocks automated access, so it is not used.
 4. Country ranking (countries only, never individuals) and real city lights on the Earth view.
 5. Community ideas and voting in the Solution Lab, with moderation before ideas go public (young players).
-6. Scanner: a server function that holds the Gemini key (needs the Blaze plan, or another host).
+6. Scanner: a server function that holds the Gemini key.
+   - [x] `api/scan.ts` + `server/scan.ts` on Vercel (no Blaze plan needed). Signed-in players only (Firebase ID token checked with jose), 20 scans per player per hour, images ~768 px and never stored. Gemini only picks one of our specimen ids; facts come from specimens.ts. Key: `GEMINI_API_KEY` in Vercel env, from a Google project WITHOUT billing (can't be charged; 429 when the free allowance runs out). Model: `GEMINI_MODEL`, default `gemini-flash-latest`. Free-tier inputs may be used by Google, so the app says to photograph only the item, no people.
 7. Share cards.
 8. Class codes for schools.
    - [x] Teachers (Google sign-in) create classes with a 6-character code and a join link (`?class=CODE`). Students join without accounts or names; the teacher sees the member count and the class's weekly total (3 kg goal), never individuals. Built as general groups (`kind: 'class' | 'household'`) so households can reuse it. `src/services/groups.ts`, `src/components/ClassCard.tsx`.
