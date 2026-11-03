@@ -1,15 +1,11 @@
 import { SPECIMENS } from '../data/specimens';
+import { connectCloud } from './firebase';
 
 /**
- * AI photo scanner.
- *
- * SECURITY: the Gemini API key must never ship inside the app. Phase 2 adds a small server
- * (a Firebase Cloud Function) that holds the key and calls Gemini. The app only knows the
- * function's URL, set as VITE_SCAN_ENDPOINT in .env.local.
- *
- * The server receives { image: <base64 JPEG>, specimens: [{id,name}] } and must answer
- * { specimenId: string | null, label: string, confidence: number }. It picks from our own
- * sourced specimen list, so the AI never invents impact numbers.
+ * AI photo scanner. The photo goes to our own server function (api/scan.ts), which holds the
+ * Gemini key: the key never ships inside the app. Gemini only picks which of our sourced
+ * specimens is in the photo, so the AI never invents facts or impact numbers.
+ * Photos are downscaled first and never stored.
  */
 export interface ScanResult {
   specimenId: string | null;
@@ -18,17 +14,21 @@ export interface ScanResult {
 }
 
 export class ScannerNotConfigured extends Error {}
-
-export const scannerEndpoint = (import.meta as any).env?.VITE_SCAN_ENDPOINT as string | undefined;
+/** The free daily allowance is used up, or this player scanned a lot this hour. */
+export class ScannerBusy extends Error {}
 
 export async function identifyPlastic(file: File): Promise<ScanResult> {
-  if (!scannerEndpoint) throw new ScannerNotConfigured('AI scanner not connected yet');
   const image = await downscale(file, 768);
-  const res = await fetch(scannerEndpoint, {
+  const { auth } = await connectCloud();
+  const token = await auth.currentUser?.getIdToken();
+  const res = await fetch('/api/scan', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image, specimens: SPECIMENS.map((s) => ({ id: s.id, name: s.name })) }),
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ image }),
+    signal: AbortSignal.timeout(30_000),
   });
+  if (res.status === 503) throw new ScannerNotConfigured('AI scanner not connected yet');
+  if (res.status === 429) throw new ScannerBusy('scanner busy');
   if (!res.ok) throw new Error(`Scanner error ${res.status}`);
   const data = (await res.json()) as ScanResult;
   const known = SPECIMENS.some((s) => s.id === data.specimenId);

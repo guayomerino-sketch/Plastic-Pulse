@@ -3,7 +3,7 @@ import { SPECIMENS, specimenById } from '../data/specimens';
 import SpecimenCard from '../components/SpecimenCard';
 import { Icon } from '../components/ui';
 import { useGame } from '../game/store';
-import { identifyPlastic, ScannerNotConfigured, scannerEndpoint } from '../services/scanner';
+import { identifyPlastic, ScannerBusy, ScannerNotConfigured } from '../services/scanner';
 
 export default function Scan({ initialId, onToLab }: { initialId?: string | null; onToLab: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -29,7 +29,9 @@ export default function Scan({ initialId, onToLab }: { initialId?: string | null
       else { setStatus('error'); setNote(`Looks like "${r.label}", which isn't in our specimen files yet. Pick the closest one below.`); }
     } catch (err) {
       setStatus('error');
-      setNote(err instanceof ScannerNotConfigured ? 'The AI scanner connects in the next update. For now, pick what you found below.' : 'The scan didn’t go through. Check your connection, or pick what you found below.');
+      setNote(err instanceof ScannerNotConfigured ? 'The AI scanner isn’t switched on yet. For now, pick what you found below.'
+        : err instanceof ScannerBusy ? 'The scanner is resting for now (it has a daily limit). Pick what you found below, or try again later.'
+        : 'The scan didn’t go through. Check your connection, or pick what you found below.');
     }
   };
 
@@ -52,7 +54,7 @@ export default function Scan({ initialId, onToLab }: { initialId?: string | null
       </button>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
       {note && <p className="note" role="status">{note}</p>}
-      {!scannerEndpoint && !note && <p className="note">AI identification arrives in the next update. You can already open any Specimen File below.</p>}
+      {!note && <p className="note">Photograph only the plastic item, with no people in the picture. The photo is sent to Google’s Gemini AI to recognise the item and is never stored by Plastic Pulse. All facts come from our sourced Specimen Files.</p>}
 
       {selected && idx >= 0 && (
         <>

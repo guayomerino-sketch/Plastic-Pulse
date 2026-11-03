@@ -10,6 +10,23 @@ const devVitals = (): Plugin => ({
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ city: 'Los Angeles', country: 'US', lat: 34.1, lng: -118.2 }));
     });
+    // The scanner locally: same code as api/scan.ts, minus the sign-in check (the emulators' tokens aren't signed).
+    // With no GEMINI_API_KEY in .env.local it answers 'not-configured', like production before the key is added.
+    server.middlewares.use('/api/scan', (req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', async () => {
+        const { identify, ScanError } = await server.ssrLoadModule('/server/scan.ts');
+        res.setHeader('Content-Type', 'application/json');
+        try {
+          const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+          res.end(JSON.stringify(await identify('local-dev', body.image)));
+        } catch (err) {
+          const e = err instanceof ScanError ? err : { status: 500, code: 'server-error' };
+          res.statusCode = e.status; res.end(JSON.stringify({ error: e.code }));
+        }
+      });
+    });
     server.middlewares.use('/api/vitals', async (_req, res) => {
       try {
         const { getVitals } = await server.ssrLoadModule('/server/vitals.ts');
@@ -27,6 +44,10 @@ const devVitals = (): Plugin => ({
 export default defineConfig(({ mode }) => {
   // Load VITE_ prefixed env vars so import.meta.env.VITE_* is available at runtime
   loadEnv(mode, process.cwd(), 'VITE_');
+  // Server-only secrets for the local api routes (never exposed to the app): GEMINI_API_KEY from .env.local.
+  const server = loadEnv(mode, process.cwd(), '');
+  if (server.GEMINI_API_KEY) process.env.GEMINI_API_KEY ??= server.GEMINI_API_KEY;
+  if (server.GEMINI_MODEL) process.env.GEMINI_MODEL ??= server.GEMINI_MODEL;
   return {
     plugins: [react(), devVitals()],
     build: {
