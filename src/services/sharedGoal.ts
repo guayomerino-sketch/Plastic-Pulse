@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { connectCloud } from './firebase';
 import { SHARED_GOAL } from '../data/content';
+import { getWhere } from './where';
 
 /**
  * The weekly shared goal, live from Firestore.
@@ -42,19 +43,22 @@ export async function contribute(grams: number, groupId?: string | null): Promis
   const { db, uid } = await connectCloud();
   const { doc, writeBatch, increment, serverTimestamp } = await import('firebase/firestore');
   const week = weekId();
-  const commit = (withGroup: boolean) => {
+  const where = await getWhere();
+  const commit = (withGroup: boolean, withCity: boolean) => {
     const batch = writeBatch(db);
     batch.set(doc(db, 'goals', week), { grams: increment(g), targetGrams: SHARED_GOAL.targetGrams }, { merge: true });
     // `at` lets the rules enforce a short pause between choices.
     batch.set(doc(db, 'goals', week, 'players', uid), { grams: increment(g), at: serverTimestamp() }, { merge: true });
     if (withGroup && groupId) batch.set(doc(db, 'groups', groupId, 'weeks', week), { grams: increment(g) }, { merge: true });
+    // The player's city light on the globe (rough city only, nothing personal).
+    if (withCity && where) batch.set(doc(db, 'lights', week, 'cities', where.key), { grams: increment(g), name: where.city, country: where.country, lat: where.lat, lng: where.lng }, { merge: true });
     return batch.commit();
   };
-  try { await commit(true); } catch (err) {
-    // No longer a member (left on another device, or removed by the teacher): still count for the world.
-    if (!groupId) throw err;
-    await commit(false);
-  }
+  // If the class part is refused (left on another device, or removed), keep the city; if that fails too,
+  // still count for the world.
+  try { await commit(true, true); return; } catch (err) { if (!groupId && !where) throw err; }
+  if (groupId && where) { try { await commit(false, true); return; } catch { /* fall through */ } }
+  await commit(false, false);
 }
 
 export function useSharedGoal(): GoalStatus {
@@ -83,4 +87,24 @@ export function useSharedGoal(): GoalStatus {
     return () => { cancelled = true; stop.forEach((f) => f()); };
   }, []);
   return status;
+}
+
+export interface CityLight { key: string; name: string; country: string; lat: number; lng: number; grams: number }
+
+/** This week's brightest city lights, live. */
+export function useCityLights(max = 60): CityLight[] {
+  const [lights, setLights] = useState<CityLight[]>([]);
+  useEffect(() => {
+    let stop = () => {};
+    let alive = true;
+    (async () => {
+      const { db } = await connectCloud();
+      const { collection, query, orderBy, limit, onSnapshot } = await import('firebase/firestore');
+      if (!alive) return;
+      stop = onSnapshot(query(collection(db, 'lights', weekId(), 'cities'), orderBy('grams', 'desc'), limit(max)),
+        (snap) => setLights(snap.docs.map((d) => ({ key: d.id, ...(d.data() as Omit<CityLight, 'key'>) }))), () => {});
+    })().catch(() => {});
+    return () => { alive = false; stop(); };
+  }, [max]);
+  return lights;
 }

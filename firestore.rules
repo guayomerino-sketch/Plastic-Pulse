@@ -156,6 +156,26 @@ service cloud.firestore {
       }
     }
 
+    // City lights on the globe: lights/{week}/cities/{key}, e.g. key "US-los-angeles".
+    // A city grows only together with a player's own capped part of the world goal (same batch).
+    // Only a rough city is stored (from /api/where): never a player id, GPS or anything personal.
+    match /lights/{week}/cities/{key} {
+      function playerPath() { return /databases/$(database)/documents/goals/$(week)/players/$(request.auth.uid); }
+      function playerDelta() { return getAfter(playerPath()).data.grams - (exists(playerPath()) ? get(playerPath()).data.grams : 0); }
+      function delta() { return request.resource.data.grams - (resource == null ? 0 : resource.data.grams); }
+      function place() {
+        let d = request.resource.data;
+        return d.name is string && d.name.size() >= 1 && d.name.size() <= 60 && noContact(d.name) && noBadWords(d.name)
+          && d.country is string && d.country.matches('^[A-Z]{2}$') && key.matches('^' + d.country + '-[a-z0-9-]{1,40}$')
+          && d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180;
+      }
+      allow read: if signedIn();
+      allow create: if signedIn() && week.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['grams', 'name', 'country', 'lat', 'lng'])
+        && place() && validDelta(delta()) && delta() == playerDelta();
+      allow update: if signedIn() && onlyChanged(['grams']) && validDelta(delta()) && delta() == playerDelta();
+    }
+
     // Groups: a class (made by a teacher) or, later, a household. Members join with a short code.
     // Members are anonymous: the owner sees how many joined and the group's total, never who did what.
     // Keep codes and goals in sync with src/services/groups.ts.

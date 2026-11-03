@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GOODALL_QUOTE, RANKS, SHARED_GOAL } from '../data/content';
 import { rankFor, useGame } from '../game/store';
-import { MAX_GRAMS_PER_PLAYER_WEEK, useSharedGoal } from '../services/sharedGoal';
+import { MAX_GRAMS_PER_PLAYER_WEEK, useCityLights, useSharedGoal, type CityLight } from '../services/sharedGoal';
 import { dateLabel, useVitals } from '../vitals/useVitals';
 import { REEF_LEVELS, type Source, type Vitals } from '../vitals/types';
 import { useGroupWeek } from '../services/groups';
@@ -18,9 +18,12 @@ interface Props {
   onFocus: (place: [number, number] | null) => void;
   onZoomOut: () => void;
   onVitals: (v: Vitals) => void;
+  onLights: (lights: CityLight[]) => void;
 }
 
-export default function World({ onYou, onFocus, onZoomOut, onVitals }: Props) {
+export default function World({ onYou, onFocus, onZoomOut, onVitals, onLights }: Props) {
+  const lights = useCityLights();
+  useEffect(() => { onLights(lights); }, [lights, onLights]);
   const [tab, setTab] = useState<'planet' | 'us'>('planet');
   const [open, setOpen] = useState<VitalId | null>(null);
   const vitals = useVitals();
@@ -37,7 +40,7 @@ export default function World({ onYou, onFocus, onZoomOut, onVitals }: Props) {
           <button role="tab" aria-selected={tab === 'planet'} className={tab === 'planet' ? 'on' : ''} onClick={() => { setTab('planet'); }}>Planet’s vital signs</button>
           <button role="tab" aria-selected={tab === 'us'} className={tab === 'us' ? 'on' : ''} onClick={() => { setTab('us'); pick(null); }}>Our choices</button>
         </div>
-        {tab === 'planet' ? <Planet status={vitals.state} v={v} open={open} pick={pick} onZoomOut={onZoomOut} /> : <Us onYou={onYou} />}
+        {tab === 'planet' ? <Planet status={vitals.state} v={v} open={open} pick={pick} onZoomOut={onZoomOut} /> : <Us onYou={onYou} cities={lights.length} />}
       </section>
     </div>
   );
@@ -156,7 +159,7 @@ function Detail({ id, v, onBack }: { id: VitalId; v: Vitals; onBack: () => void 
 
 /* ---------- our choices ---------- */
 
-function Us({ onYou }: { onYou: () => void }) {
+function Us({ onYou, cities }: { onYou: () => void; cities: number }) {
   const { state } = useGame();
   const rank = rankFor(state);
   const goal = useSharedGoal();
@@ -187,7 +190,7 @@ function Us({ onYou }: { onYou: () => void }) {
         ))}
       </div>
       <blockquote className="quote-sm">“{GOODALL_QUOTE}”<cite>— Jane Goodall</cite></blockquote>
-      <p className="tag">Our grams won’t visibly move the planet’s vital signs: those change through billions of choices. Each light on Earth is a community of players (sample data for now).</p>
+      <p className="tag">{cities > 0 ? `Each light on Earth is a city where players refused plastic this week: ${cities} so far.` : 'Each light on Earth will be a city where players refused plastic this week.'} Our grams won’t visibly move the planet’s vital signs; those change through billions of choices.</p>
     </>
   );
 }

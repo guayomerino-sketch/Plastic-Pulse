@@ -130,7 +130,7 @@ export class World3D {
   purify(strength = 1) {
     this.burst = Math.max(this.burst, strength);
     this.u.ocean.uniforms.uRipple.value = this.now();
-    for (const b of this.u.beacons) if (b.home) b.base += 0.12 * strength;
+    for (const b of this.u.beacons) if (b.home) b.base = Math.min(b.base + 0.12 * strength, 2);
   }
   /** Plastic used: smog ring, leaves fall, camera moves in to the Guardian. */
   pollute() {
@@ -514,27 +514,9 @@ export class World3D {
 
     const ll = (lat: number, lng: number, r: number) => { const phi = ((90 - lat) * Math.PI) / 180, th = ((lng + 180) * Math.PI) / 180; return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)); };
     u.ll = ll;
-    // Sample community lights until Phase 2 brings real data. The first one is "home".
-    const cities: [number, number, number][] = [[34.05, -118.24, 1.0], [19.43, -99.13, 0.8], [9.93, -84.08, 0.7], [14.6, 120.98, 0.85], [-1.29, 36.82, 0.65], [38.72, -9.14, 0.5], [-23.55, -46.63, 0.75], [51.5, -0.12, 0.7], [35.68, 139.69, 0.9], [28.7, 77.1, 0.8], [-33.87, 151.2, 0.55], [6.52, 3.38, 0.6], [40.71, -74.0, 0.85], [1.35, 103.82, 0.5]];
-    const beamMat = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
-    u.beacons = []; const glowPts: number[] = [];
-    cities.forEach(([la, lo, v], i) => {
-      const n = ll(la, lo, 1).normalize(); const h = 0.25 + v * 0.6;
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.04, 1, 6), beamMat); m.position.copy(n.clone().multiplyScalar(5 + h / 2)); m.scale.y = h;
-      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); globe.add(m);
-      const tip = n.clone().multiplyScalar(5 + h); glowPts.push(tip.x, tip.y, tip.z); u.beacons.push({ m, n, base: h, home: i === 0 });
-    });
-    const gp = new THREE.BufferGeometry(); gp.setAttribute('position', new THREE.Float32BufferAttribute(glowPts, 3));
-    u.glowP = new THREE.Points(gp, new THREE.PointsMaterial({ size: 0.4, map: sprite, color: 0x99f6e4, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); globe.add(u.glowP);
-    u.arcs = [];
-    [[0, 2], [2, 6], [3, 8], [4, 5], [12, 7], [9, 3], [1, 12], [10, 13]].forEach(([a, b]) => {
-      const A = ll(cities[a][0], cities[a][1], 5.02), B = ll(cities[b][0], cities[b][1], 5.02);
-      const mid = A.clone().add(B).multiplyScalar(0.5).normalize().multiplyScalar(5 + A.distanceTo(B) * 0.35);
-      const curve = new THREE.QuadraticBezierCurve3(A, mid, B);
-      globe.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(48)), new THREE.LineBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending })));
-      const comet = new THREE.Sprite(new THREE.SpriteMaterial({ map: sprite, color: 0xccfbf1, blending: THREE.AdditiveBlending, depthWrite: false })); comet.scale.setScalar(0.35); globe.add(comet);
-      u.arcs.push({ curve, comet, t: Math.random(), sp: rand(0.12, 0.25) });
-    });
+    // City lights: filled by setLights() with real cities where players refused plastic this week.
+    u.lights = new THREE.Group(); globe.add(u.lights);
+    u.beacons = []; u.arcs = []; u.glowP = null;
 
     this.buildVitalMarkers(globe, sprite);
     globe.rotation.y = 1.9;
@@ -561,6 +543,46 @@ export class World3D {
     u.amazon = dot(0xffc566, 0.5);
     u.amazon.position.copy(ll(-3.4, -62.2, 5.1));
     u.co2 = dot(0x7ff3dc, 0.4); u.co2.position.copy(ll(19.54, -155.58, 5.1)); // Mauna Loa Observatory, Hawai‘i
+  }
+
+  /**
+   * Real city lights: one beam per city, taller the more its players refused this week.
+   * The player's own city glows brightest. Arcs link neighbouring lights.
+   */
+  setLights(cities: { lat: number; lng: number; grams: number; home: boolean }[]) {
+    const u = this.u, ll = u.ll, group: THREE.Group = u.lights, sprite: THREE.Texture = u.sprite;
+    group.traverse((o: THREE.Object3D) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });
+    group.clear(); u.beacons = []; u.arcs = []; u.glowP = null;
+    if (!cities.length) return;
+    const beam = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
+    const homeBeam = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+    const max = Math.max(...cities.map((c) => c.grams), 1);
+    const tips: number[] = [];
+    cities.forEach((c) => {
+      const n = ll(c.lat, c.lng, 1).normalize();
+      const h = 0.25 + 0.95 * Math.log1p(c.grams) / Math.log1p(max);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(c.home ? 0.03 : 0.02, c.home ? 0.06 : 0.04, 1, 6), c.home ? homeBeam : beam);
+      m.position.copy(n.clone().multiplyScalar(5 + h / 2)); m.scale.y = h;
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); group.add(m);
+      const tip = n.clone().multiplyScalar(5 + h); tips.push(tip.x, tip.y, tip.z);
+      u.beacons.push({ m, n, base: h, home: c.home });
+    });
+    const gp = new THREE.BufferGeometry(); gp.setAttribute('position', new THREE.Float32BufferAttribute(tips, 3));
+    u.glowP = new THREE.Points(gp, new THREE.PointsMaterial({ size: 0.4, map: sprite, color: 0x99f6e4, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    group.add(u.glowP);
+    // Link each city to its nearest neighbour (at most 12 arcs), so the community reads as connected.
+    const pts = cities.map((c) => ll(c.lat, c.lng, 5.02));
+    pts.slice(0, 12).forEach((A, i) => {
+      let best = -1, bd = Infinity;
+      pts.forEach((B, j) => { const d = A.distanceTo(B); if (j !== i && d > 0.3 && d < bd) { bd = d; best = j; } });
+      if (best < 0) return;
+      const B = pts[best];
+      const mid = A.clone().add(B).multiplyScalar(0.5).normalize().multiplyScalar(5 + A.distanceTo(B) * 0.35);
+      const curve = new THREE.QuadraticBezierCurve3(A, mid, B);
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(48)), new THREE.LineBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending })));
+      const comet = new THREE.Sprite(new THREE.SpriteMaterial({ map: sprite, color: 0xccfbf1, blending: THREE.AdditiveBlending, depthWrite: false })); comet.scale.setScalar(0.35); group.add(comet);
+      u.arcs.push({ curve, comet, t: Math.random(), sp: rand(0.12, 0.25) });
+    });
   }
 
   /** Show live readings on the globe. Pass null for a vital that is unavailable. */
@@ -667,7 +689,7 @@ export class World3D {
       if (u.co2.visible) u.co2.scale.setScalar(0.4 * (1 + 0.25 * Math.sin(t * 0.9)));
       const hb = heartbeat(t);
       u.beacons.forEach((b: any, i: number) => { const k = b.base * (1 + 0.08 * Math.sin(t * 2 + i)); b.m.scale.y = k; b.m.position.copy(b.n).multiplyScalar(5 + k / 2); });
-      u.glowP.material.size = 0.4 + 0.15 * hb;
+      if (u.glowP) u.glowP.material.size = 0.4 + 0.15 * hb;
       u.arcs.forEach((a: any) => { a.t = (a.t + a.sp * dt) % 1; a.comet.position.copy(a.curve.getPoint(a.t)); });
       this.bloom.strength = 0.32;
     }

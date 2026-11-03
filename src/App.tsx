@@ -10,6 +10,8 @@ import { contribute } from './services/sharedGoal';
 import { useAccount } from './services/account';
 import { normalizeCode } from './services/groups';
 import type { Vitals } from './vitals/types';
+import type { CityLight } from './services/sharedGoal';
+import { getWhere } from './services/where';
 import Pulse from './screens/Pulse';
 import Scan from './screens/Scan';
 import Lab from './screens/Lab';
@@ -126,6 +128,9 @@ export default function App() {
   // Earth's live vital signs on the globe.
   const focusEarth = useCallback((p: [number, number] | null) => worldRef.current?.focus(p ? p[0] : null, p ? p[1] : 0), []);
   const zoomOut = useCallback(() => worldRef.current?.zoomOut(), []);
+  const showLights = useCallback((lights: CityLight[]) => {
+    getWhere().then((me) => worldRef.current?.setLights(lights.map((c) => ({ lat: c.lat, lng: c.lng, grams: c.grams, home: c.key === me?.key }))));
+  }, []);
   const showVitals = useCallback((v: Vitals) => worldRef.current?.setVitals({
     arcticKm2: v.arctic.status === 'ok' ? v.arctic.extent : null,
     arcticNormalKm2: v.arctic.status === 'ok' ? v.arctic.normal : null,
@@ -174,7 +179,7 @@ export default function App() {
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
         {screen === 'solutions' && <Solutions googleUid={account.account?.kind === 'google' ? account.account.uid : null} />}
-        {screen === 'world' && <World onYou={() => go('you')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
+        {screen === 'world' && <World onYou={() => go('you')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} onLights={showLights} />}
         {screen === 'feedback' && <Feedback onDone={() => go('you')} />}
         {screen === 'you' && <You account={account} classCode={state.group ? '' : classCode} onFeedback={() => go('feedback')} />}
         {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
