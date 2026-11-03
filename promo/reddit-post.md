@@ -4,6 +4,24 @@ Images (post as a gallery, in this order):
 1. plastic-pulse-reddit-art-1080x1350.png (illustration)
 2. plastic-pulse-reddit-1080x1350.png (real game screens)
 
+## Short version (r/WebGames and most communities)
+
+Keep the link on its own line, with nothing touching it: Reddit treats a bracket or dash next to a URL as part of it.
+
+**Title:** I made a free browser game where your plastic choices heal a living world
+
+**Body:**
+Hey everyone,
+
+I built Plastic Pulse, a free game about everyday plastic. Log what you refuse, reuse or use, and your 3D biome reacts. Discover 15 plastics as 3D holograms, and watch the real Earth's vital signs (CO₂, Arctic ice, coral reefs, the Amazon) update live.
+
+No sign-up, runs on your phone:
+https://plastic-pulse.vercel.app
+
+It's an early version, so tell me what's fun, what's confusing, and what you'd add!
+
+Thx
+
 ## Template version (r/playmygame and other communities that require this format)
 
 **Title:** Plastic Pulse: a free browser game where your plastic choices heal a living world, and the Earth shows real planet data, live
