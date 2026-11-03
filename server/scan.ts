@@ -12,6 +12,7 @@ import { SPECIMENS } from '../src/data/specimens.js';
 export const MAX_IMAGE_CHARS = 1_400_000; // ~1 MB of JPEG as base64; the app sends ~768 px images
 const PROJECT = 'plasticpulse-a921c';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const FALLBACK_MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite']; // free-tier models, tried when the main one is busy
 const PER_PLAYER_PER_HOUR = 20;
 
 export interface ScanAnswer { specimenId: string | null; label: string; confidence: number }
@@ -54,31 +55,38 @@ If none of them fits, use null for specimenId.
 Answer with: specimenId (an id from the list, or null), label (what the object is, at most 6 plain words),
 confidence (0 to 1). Do not describe people, places or anything else in the photo.`;
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    signal: AbortSignal.timeout(20_000),
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/jpeg', data: image } }] }],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 200,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'OBJECT',
-          properties: { specimenId: { type: 'STRING', nullable: true }, label: { type: 'STRING' }, confidence: { type: 'NUMBER' } },
-          required: ['specimenId', 'label', 'confidence'],
+  // Try the main model, then lighter ones when Google is busy (503), overloaded (500) or a name changed (404).
+  const models = [...new Set([MODEL, ...FALLBACK_MODELS])];
+  let res: Response | null = null, reason = '';
+  for (const model of models) {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      signal: AbortSignal.timeout(20_000),
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/jpeg', data: image } }] }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 1024, // room for models that think before answering
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: { specimenId: { type: 'STRING', nullable: true }, label: { type: 'STRING' }, confidence: { type: 'NUMBER' } },
+            required: ['specimenId', 'label', 'confidence'],
+          },
         },
-      },
-    }),
-  });
-  if (res.status === 429) throw new ScanError(429, 'daily-limit');
-  if (!res.ok) {
-    // Gemini's own short reason (never contains the key), to tell a bad key from a bad request.
-    const reason = await res.json().then((e) => String(e?.error?.message ?? ''), () => '');
-    console.error('gemini error', res.status, reason);
-    throw new ScanError(502, `gemini-${res.status}`, reason.slice(0, 200));
+      }),
+    });
+    if (res.ok) break;
+    // Gemini's own short reason (never contains the key), to tell a bad key from a busy model.
+    reason = await res.json().then((e) => String(e?.error?.message ?? ''), () => '');
+    console.error('gemini error', model, res.status, reason);
+    if (![404, 500, 503].includes(res.status)) break;
   }
+  if (!res) throw new ScanError(502, 'no-model');
+  if (res.status === 429) throw new ScanError(429, 'daily-limit');
+  if (res.status === 503 || res.status === 500) throw new ScanError(429, 'busy', reason.slice(0, 200)); // shown as "resting"
+  if (!res.ok) throw new ScanError(502, `gemini-${res.status}`, reason.slice(0, 200));
   const data = await res.json();
   const text: string = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   let out: Partial<ScanAnswer> = {};
