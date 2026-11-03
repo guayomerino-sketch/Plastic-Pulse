@@ -12,6 +12,6 @@ export async function POST(request: Request) {
   } catch (err) {
     const e = err instanceof ScanError ? err : new ScanError(500, 'server-error');
     if (!(err instanceof ScanError)) console.error('scan failed', err);
-    return Response.json({ error: e.code }, { status: e.status, headers: { 'Cache-Control': 'no-store' } });
+    return Response.json({ error: e.code, ...(e.detail ? { detail: e.detail } : {}) }, { status: e.status, headers: { 'Cache-Control': 'no-store' } });
   }
 }

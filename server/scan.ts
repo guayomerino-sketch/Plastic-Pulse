@@ -15,7 +15,7 @@ const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 const PER_PLAYER_PER_HOUR = 20;
 
 export interface ScanAnswer { specimenId: string | null; label: string; confidence: number }
-export class ScanError extends Error { constructor(public status: number, public code: string) { super(code); } }
+export class ScanError extends Error { constructor(public status: number, public code: string, public detail = '') { super(code); } }
 
 const jwks = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
 
@@ -41,7 +41,7 @@ function rateLimit(uid: string) {
 
 /** Ask Gemini which specimen is in the photo. */
 export async function identify(uid: string, image: unknown): Promise<ScanAnswer> {
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.GEMINI_API_KEY?.trim().replace(/^['"]|['"]$/g, ''); // tolerate stray spaces or quotes from pasting
   if (!key) throw new ScanError(503, 'not-configured');
   if (typeof image !== 'string' || image.length < 100 || image.length > MAX_IMAGE_CHARS || !/^[A-Za-z0-9+/=]+$/.test(image)) throw new ScanError(400, 'bad-image');
   rateLimit(uid);
@@ -73,7 +73,12 @@ confidence (0 to 1). Do not describe people, places or anything else in the phot
     }),
   });
   if (res.status === 429) throw new ScanError(429, 'daily-limit');
-  if (!res.ok) throw new ScanError(502, `gemini-${res.status}`);
+  if (!res.ok) {
+    // Gemini's own short reason (never contains the key), to tell a bad key from a bad request.
+    const reason = await res.json().then((e) => String(e?.error?.message ?? ''), () => '');
+    console.error('gemini error', res.status, reason);
+    throw new ScanError(502, `gemini-${res.status}`, reason.slice(0, 200));
+  }
   const data = await res.json();
   const text: string = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   let out: Partial<ScanAnswer> = {};
