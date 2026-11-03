@@ -35,17 +35,26 @@ export interface GoalSnapshot {
 
 export type GoalStatus = { state: 'connecting' } | { state: 'offline' } | ({ state: 'live' } & GoalSnapshot);
 
-export async function contribute(grams: number): Promise<void> {
+/** Adds a refused or reused item to the world goal, and to the player's class or household if they're in one. */
+export async function contribute(grams: number, groupId?: string | null): Promise<void> {
   if (!(grams > 0)) return;
   const g = Math.min(grams, MAX_GRAMS_PER_CHOICE);
   const { db, uid } = await connectCloud();
   const { doc, writeBatch, increment, serverTimestamp } = await import('firebase/firestore');
   const week = weekId();
-  const batch = writeBatch(db);
-  batch.set(doc(db, 'goals', week), { grams: increment(g), targetGrams: SHARED_GOAL.targetGrams }, { merge: true });
-  // `at` lets the rules enforce a short pause between choices.
-  batch.set(doc(db, 'goals', week, 'players', uid), { grams: increment(g), at: serverTimestamp() }, { merge: true });
-  await batch.commit();
+  const commit = (withGroup: boolean) => {
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'goals', week), { grams: increment(g), targetGrams: SHARED_GOAL.targetGrams }, { merge: true });
+    // `at` lets the rules enforce a short pause between choices.
+    batch.set(doc(db, 'goals', week, 'players', uid), { grams: increment(g), at: serverTimestamp() }, { merge: true });
+    if (withGroup && groupId) batch.set(doc(db, 'groups', groupId, 'weeks', week), { grams: increment(g) }, { merge: true });
+    return batch.commit();
+  };
+  try { await commit(true); } catch (err) {
+    // No longer a member (left on another device, or removed by the teacher): still count for the world.
+    if (!groupId) throw err;
+    await commit(false);
+  }
 }
 
 export function useSharedGoal(): GoalStatus {

@@ -5,6 +5,7 @@ import { MAX_GRAMS_PER_PLAYER_WEEK, useSharedGoal } from '../services/sharedGoal
 import { dateLabel, useVitals } from '../vitals/useVitals';
 import { REEF_LEVELS, type Source, type Vitals } from '../vitals/types';
 import type { useAccount } from '../services/account';
+import ClassCard from '../components/ClassCard';
 
 type AccountApi = ReturnType<typeof useAccount>;
 
@@ -17,14 +18,15 @@ const PLACES: Record<VitalId, [number, number]> = { co2: [19.54, -155.58], arcti
 
 interface Props {
   account: AccountApi;
+  classCode: string; // from a ?class= join link
   onFeedback: () => void;
   onFocus: (place: [number, number] | null) => void;
   onZoomOut: () => void;
   onVitals: (v: Vitals) => void;
 }
 
-export default function World({ account, onFeedback, onFocus, onZoomOut, onVitals }: Props) {
-  const [tab, setTab] = useState<'planet' | 'us'>('planet');
+export default function World({ account, classCode, onFeedback, onFocus, onZoomOut, onVitals }: Props) {
+  const [tab, setTab] = useState<'planet' | 'us'>(classCode ? 'us' : 'planet');
   const [open, setOpen] = useState<VitalId | null>(null);
   const vitals = useVitals();
   const v = vitals.state === 'ok' ? vitals.vitals : null;
@@ -40,7 +42,7 @@ export default function World({ account, onFeedback, onFocus, onZoomOut, onVital
           <button role="tab" aria-selected={tab === 'planet'} className={tab === 'planet' ? 'on' : ''} onClick={() => { setTab('planet'); }}>Planet’s vital signs</button>
           <button role="tab" aria-selected={tab === 'us'} className={tab === 'us' ? 'on' : ''} onClick={() => { setTab('us'); pick(null); }}>Our choices</button>
         </div>
-        {tab === 'planet' ? <Planet status={vitals.state} v={v} open={open} pick={pick} onZoomOut={onZoomOut} /> : <Us account={account} onFeedback={onFeedback} />}
+        {tab === 'planet' ? <Planet status={vitals.state} v={v} open={open} pick={pick} onZoomOut={onZoomOut} /> : <Us account={account} classCode={classCode} onFeedback={onFeedback} />}
       </section>
     </div>
   );
@@ -159,7 +161,7 @@ function Detail({ id, v, onBack }: { id: VitalId; v: Vitals; onBack: () => void 
 
 /* ---------- our choices ---------- */
 
-function Us({ account, onFeedback }: { account: AccountApi; onFeedback: () => void }) {
+function Us({ account, classCode, onFeedback }: { account: AccountApi; classCode: string; onFeedback: () => void }) {
   const { state } = useGame();
   const rank = rankFor(state);
   const goal = useSharedGoal();
@@ -168,6 +170,7 @@ function Us({ account, onFeedback }: { account: AccountApi; onFeedback: () => vo
   return (
     <>
       <AccountCard a={account} />
+      <ClassCard isTeacher={account.account?.kind === 'google'} initialCode={classCode} />
       <div className="label">This week · one shared goal</div>
       <div className="title">{SHARED_GOAL.label}</div>
       <div className="bar thick"><i className="tone-good" style={{ width: `${p}%` }} /></div>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import type { ChoiceAction, GameState, Idea, LabProgress } from '../types';
+import type { ChoiceAction, GameState, GroupRef, Idea, LabProgress } from '../types';
 import { CHALLENGES, RANKS, XP } from '../data/content';
 import { DISCOVERY_XP, specimenById } from '../data/specimens';
 
@@ -23,6 +23,7 @@ export const initialState: GameState = {
   musicOn: true,
   studied: [],
   discovery: null,
+  group: null,
 };
 
 export type Action =
@@ -37,6 +38,7 @@ export type Action =
   | { type: 'study'; specimenId: string }
   | { type: 'discovery/clear' }
   | { type: 'merge'; cloud: GameState }
+  | { type: 'group'; group: GroupRef | null }
   | { type: 'reset' };
 
 function touchStreak(s: GameState): GameState {
@@ -107,6 +109,8 @@ export function reducer(s: GameState, a: Action): GameState {
     }
     case 'discovery/clear':
       return { ...s, discovery: null };
+    case 'group':
+      return { ...s, group: a.group };
     case 'merge':
       return mergeStates(s, a.cloud);
     case 'reset':
@@ -149,6 +153,7 @@ export function mergeStates(local: GameState, cloud: GameState): GameState {
     votedIdeaIds: union(c.votedIdeaIds, local.votedIdeaIds),
     musicOn: local.musicOn,
     discovery: null,
+    group: local.group ?? c.group ?? null,
   };
 }
 

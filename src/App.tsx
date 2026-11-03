@@ -8,6 +8,7 @@ import { HealthMeter, Icon } from './components/ui';
 import { DISCOVERY_XP, specimenById } from './data/specimens';
 import { contribute } from './services/sharedGoal';
 import { useAccount } from './services/account';
+import { normalizeCode } from './services/groups';
 import type { Vitals } from './vitals/types';
 import Pulse from './screens/Pulse';
 import Scan from './screens/Scan';
@@ -28,6 +29,8 @@ const NAV: { id: ScreenId; label: string; icon: string }[] = [
 export default function App() {
   const { state, dispatch } = useGame();
   const account = useAccount(); // one instance: it merges and saves progress for Google sign-in
+  // A teacher's join link (?class=K7P2QX) opens the class card with the code filled in.
+  const classCode = useMemo(() => normalizeCode(new URLSearchParams(location.search).get('class') ?? ''), []);
   const [entered, setEntered] = useState(false);
   const [screen, setScreen] = useState<ScreenId>('pulse');
   const [scanId, setScanId] = useState<string | null>(null);
@@ -94,12 +97,13 @@ export default function App() {
     setEntered(true);
     if (state.musicOn) startMusic();
     worldRef.current?.purify(1);
+    if (classCode && !state.group) go('world');
     window.setTimeout(() => showLyric(HOPEFUL_LINES[0]), 3500);
   };
 
   const onChoice = (specimenId: string, action: ChoiceAction) => {
     dispatch({ type: 'log', specimenId, action });
-    if (action !== 'use') contribute(specimenById(specimenId).massGrams ?? 0).catch(() => { /* offline: the choice still counts locally */ });
+    if (action !== 'use') contribute(specimenById(specimenId).massGrams ?? 0, state.group?.id).catch(() => { /* offline: the choice still counts locally */ });
     const w = worldRef.current;
     if (action === 'use') {
       w?.pollute();
@@ -166,7 +170,7 @@ export default function App() {
         {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
         {screen === 'lab' && <Lab />}
         {screen === 'solutions' && <Solutions />}
-        {screen === 'world' && <World account={account} onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
+        {screen === 'world' && <World account={account} classCode={state.group ? '' : classCode} onFeedback={() => go('feedback')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} />}
         {screen === 'feedback' && <Feedback onDone={() => go('world')} />}
         {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
       </main>

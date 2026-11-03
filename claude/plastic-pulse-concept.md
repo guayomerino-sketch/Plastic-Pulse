@@ -36,6 +36,7 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 6. Scanner: a server function that holds the Gemini key (needs the Blaze plan, or another host).
 7. Share cards.
 8. Class codes for schools.
+   - [x] Teachers (Google sign-in) create classes with a 6-character code and a join link (`?class=CODE`). Students join without accounts or names; the teacher sees the member count and the class's weekly total (3 kg goal), never individuals. Built as general groups (`kind: 'class' | 'household'`) so households can reuse it. `src/services/groups.ts`, `src/components/ClassCard.tsx`.
 9. Phase 3: Android app (Capacitor), Google Play. Phase 4: sculpted Guardian, logo, more content.
 
 ## Pilot (started November 2026)

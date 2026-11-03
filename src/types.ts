@@ -107,4 +107,8 @@ export interface GameState {
   musicOn: boolean;
   studied: string[]; // specimens opened in Scan or the Book; logged ones count as discovered too
   discovery: { specimenId: string; at: number } | null; // the latest first discovery, shown as a reveal
+  group: GroupRef | null; // the class (or, later, household) this player belongs to
 }
+
+export type GroupKind = 'class' | 'household';
+export interface GroupRef { id: string; name: string; code: string; kind: GroupKind }

@@ -290,6 +290,15 @@ textarea, input { width: 100%; margin-top: 6px; background: rgba(0, 0, 0, 0.3); 
 .account { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px; border-radius: 18px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-line); }
 .account .tag, .account [role=alert] { flex-basis: 100%; }
 
+/* classes */
+.class-card { flex-direction: column; align-items: stretch; }
+.class-join { display: flex; flex-direction: column; gap: 6px; }
+.class-join input { margin-top: 0; }
+.code-input { flex: 1; min-width: 0; font: 600 20px var(--mono); letter-spacing: 6px; text-transform: uppercase; text-align: center; }
+.teach { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--glass-line); }
+.owned { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(185, 164, 255, 0.08); border: 1px solid rgba(185, 164, 255, 0.3); }
+.code-big { font: 600 20px var(--mono); letter-spacing: 4px; color: var(--violet-soft); }
+
 /* world */
 .path { display: flex; gap: 4px; margin-top: 2px; }
 .path-step { flex: 1; display: flex; flex-direction: column; gap: 5px; text-align: center; font: 500 10px var(--display); color: var(--muted); }
