@@ -3,15 +3,19 @@ import { SPECIMENS, specimenById } from '../data/specimens';
 import SpecimenCard from '../components/SpecimenCard';
 import { Icon } from '../components/ui';
 import { useGame } from '../game/store';
-import { identifyPlastic, ScannerBusy, ScannerNotConfigured } from '../services/scanner';
+import { identifyPlastic, ScannerBusy, ScannerNotConfigured, slugify, tallyUnmatched } from '../services/scanner';
+import FieldFindCard from '../components/FieldFindCard';
+import { XP } from '../data/content';
 
-export default function Scan({ initialId, onToLab }: { initialId?: string | null; onToLab: () => void }) {
+export default function Scan({ initialId, onToLab, onPitch }: { initialId?: string | null; onToLab: () => void; onPitch: (label: string) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<string | null>(initialId ?? null);
   const [status, setStatus] = useState<'idle' | 'scanning' | 'error'>('idle');
   const [note, setNote] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
+  const [findSlug, setFindSlug] = useState<string | null>(null);
+  const find = findSlug ? state.finds.find((f) => f.slug === findSlug) ?? null : null;
 
   // Opening a specimen file adds it to the Specimen Book.
   useEffect(() => { if (selected) dispatch({ type: 'study', specimenId: selected }); }, [selected, dispatch]);
@@ -25,8 +29,17 @@ export default function Scan({ initialId, onToLab }: { initialId?: string | null
     setNote('');
     try {
       const r = await identifyPlastic(file);
-      if (r.specimenId) { setSelected(r.specimenId); setStatus('idle'); setNote(`Match: ${r.label} (${Math.round(r.confidence * 100)}%)`); }
-      else { setStatus('error'); setNote(`Looks like "${r.label}", which isn't in our specimen files yet. Pick the closest one below.`); }
+      setStatus('idle');
+      if (r.specimenId) { setFindSlug(null); setSelected(r.specimenId); setNote(`Match: ${r.label} (${Math.round(r.confidence * 100)}%)`); }
+      else {
+        // Anything else becomes a Field find: named by the AI, explained with our sourced material facts.
+        const slug = slugify(r.label);
+        const isNew = !state.finds.some((f) => f.slug === slug);
+        dispatch({ type: 'find/add', find: { slug, label: r.label, material: r.material, plastic: r.plastic, parts: r.parts } });
+        setSelected(null); setFindSlug(slug);
+        setNote(isNew ? `New field find: ${r.label}! +${XP.find} XP` : `Field find: ${r.label}`);
+        if (r.plastic !== 'no') tallyUnmatched(r.label, r.material).catch(() => {});
+      }
     } catch (err) {
       setStatus('error');
       setNote(err instanceof ScannerNotConfigured ? 'The AI scanner isn’t switched on yet. For now, pick what you found below.'
@@ -41,7 +54,7 @@ export default function Scan({ initialId, onToLab }: { initialId?: string | null
     <div className="screen">
       <header className="screen-head">
         <div className="label accent">Observe → Investigate</div>
-        <h1>Scan a plastic</h1>
+        <h1>Scan anything</h1>
       </header>
 
       <section className="visor" aria-label="Scanner">
@@ -54,7 +67,9 @@ export default function Scan({ initialId, onToLab }: { initialId?: string | null
       </button>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
       {note && <p className="note" role="status">{note}</p>}
-      {!note && <p className="note">Photograph only the plastic item, with no people in the picture. The photo is sent to Google’s Gemini AI to recognise the item and is never stored by Plastic Pulse. All facts come from our sourced Specimen Files.</p>}
+      {!note && <p className="note">Scan anything: a carton, a toy, a phone case. Photograph only the item, with no people in the picture. The photo goes to Google’s Gemini AI to recognise it and is never stored by Plastic Pulse. Facts come from our sourced files, not the AI.</p>}
+
+      {find && <FieldFindCard find={find} onPitch={onPitch} />}
 
       {selected && idx >= 0 && (
         <>

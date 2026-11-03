@@ -32,7 +32,7 @@ export const RANKS: Rank[] = [
   { id: 'guardian', name: 'Biome Guardian', minXp: 8000 },
 ];
 
-export const XP = { refuse: 40, reuse: 25, use: 5, labDay: 20, idea: 150, vote: 2 } as const;
+export const XP = { refuse: 40, reuse: 25, use: 5, labDay: 20, idea: 150, vote: 2, find: 10 } as const;
 
 export const CHALLENGES: LabChallenge[] = [
   {

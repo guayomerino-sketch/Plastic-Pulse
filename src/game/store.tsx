@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import type { ChoiceAction, GameState, GroupRef, Idea, LabProgress } from '../types';
+import type { ChoiceAction, FieldFind, GameState, GroupRef, Idea, LabProgress } from '../types';
 import { CHALLENGES, RANKS, XP } from '../data/content';
 import { DISCOVERY_XP, specimenById } from '../data/specimens';
 
@@ -24,6 +24,7 @@ export const initialState: GameState = {
   studied: [],
   discovery: null,
   group: null,
+  finds: [],
 };
 
 export type Action =
@@ -39,6 +40,8 @@ export type Action =
   | { type: 'discovery/clear' }
   | { type: 'merge'; cloud: GameState }
   | { type: 'group'; group: GroupRef | null }
+  | { type: 'find/add'; find: Omit<FieldFind, 'firstAt' | 'refused' | 'reused' | 'used'> }
+  | { type: 'find/log'; slug: string; action: ChoiceAction }
   | { type: 'reset' };
 
 function touchStreak(s: GameState): GameState {
@@ -111,6 +114,18 @@ export function reducer(s: GameState, a: Action): GameState {
       return { ...s, discovery: null };
     case 'group':
       return { ...s, group: a.group };
+    case 'find/add': {
+      // A new kind of thing identified: +XP the first time. Later scans of the same thing just refresh it.
+      if (s.finds.some((f) => f.slug === a.find.slug)) return s;
+      return { ...touchStreak(s), xp: s.xp + XP.find, finds: [{ ...a.find, firstAt: Date.now(), refused: 0, reused: 0, used: 0 }, ...s.finds].slice(0, 500) };
+    }
+    case 'find/log': {
+      const delta = a.action === 'refuse' ? 0.06 : a.action === 'reuse' ? 0.03 : -0.06;
+      const key = a.action === 'refuse' ? 'refused' : a.action === 'reuse' ? 'reused' : 'used';
+      const next = touchStreak(s);
+      return { ...next, xp: next.xp + XP[a.action], health: clamp(next.health + delta, 0.05, 1),
+        finds: next.finds.map((f) => (f.slug === a.slug ? { ...f, [key]: f[key] + 1 } : f)) };
+    }
     case 'merge':
       return mergeStates(s, a.cloud);
     case 'reset':
@@ -154,6 +169,7 @@ export function mergeStates(local: GameState, cloud: GameState): GameState {
     musicOn: local.musicOn,
     discovery: null,
     group: local.group ?? c.group ?? null,
+    finds: [...new Map([...(c.finds ?? []), ...(local.finds ?? [])].map((f) => [f.slug, f])).values()],
   };
 }
 

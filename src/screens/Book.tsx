@@ -2,18 +2,22 @@ import React, { useState } from 'react';
 import { SETS, SPECIMENS, specimenById } from '../data/specimens';
 import SpecimenCard from '../components/SpecimenCard';
 import { isFound, useGame } from '../game/store';
+import FieldFindCard from '../components/FieldFindCard';
+import { MATERIALS, type MaterialId } from '../data/materials';
 
 /**
  * The Specimen Book: every plastic a player has logged or studied, as a collection in sets.
  * Undiscovered specimens stay locked, showing only their rarity, so there is always something left to find.
  * New specimens are added only once their facts are sourced (see specimens.ts).
  */
-export default function Book({ initialId, onScan }: { initialId?: string | null; onScan: () => void }) {
+export default function Book({ initialId, onScan, onPitch }: { initialId?: string | null; onScan: () => void; onPitch: (label: string) => void }) {
   const { state } = useGame();
   const found = (id: string) => isFound(state, id);
   const discovered = SPECIMENS.filter((s) => found(s.id));
   const [selected, setSelected] = useState<string | null>(initialId ?? discovered[0]?.id ?? null);
   const [hint, setHint] = useState('');
+  const [openFind, setOpenFind] = useState<string | null>(null);
+  const shownFind = state.finds.find((f) => f.slug === openFind);
 
   return (
     <div className="screen">
@@ -67,6 +71,22 @@ export default function Book({ initialId, onScan }: { initialId?: string | null;
         );
       })}
       {hint && <p className="note" role="status">{hint}</p>}
+
+      <section className="book-set" aria-label="Field finds">
+        <div className="row">
+          <h2 className="section-title">Field finds</h2>
+          <span className="label accent">{state.finds.length} identified</span>
+        </div>
+        {state.finds.length === 0 && <p className="note">Scan anything around you, like a milk carton, a toy or a phone case. Every new thing you identify lands here.</p>}
+        {shownFind && <FieldFindCard key={shownFind.slug} find={shownFind} onPitch={onPitch} />}
+        <div className="finds">
+          {state.finds.map((f) => (
+            <button key={f.slug} className={`find-chip ${f.slug === openFind ? 'on' : ''}`} onClick={() => setOpenFind(f.slug === openFind ? null : f.slug)}>
+              <small>{MATERIALS[(f.material as MaterialId) in MATERIALS ? (f.material as MaterialId) : 'UNKNOWN'].code}</small>{f.label}
+            </button>
+          ))}
+        </div>
+      </section>
       <p className="tag">More specimens are on the way. Each one joins the book once its facts are checked against a source.</p>
 
       <button className="btn ghost-violet" onClick={onScan}>Find more in Scan →</button>

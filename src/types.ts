@@ -108,6 +108,20 @@ export interface GameState {
   studied: string[]; // specimens opened in Scan or the Book; logged ones count as discovered too
   discovery: { specimenId: string; at: number } | null; // the latest first discovery, shown as a reveal
   group: GroupRef | null; // the class (or, later, household) this player belongs to
+  finds: FieldFind[]; // things the scanner identified that aren't full Specimen Files
+}
+
+/** A scanned item outside the Specimen Book: AI-named, with facts from our sourced materials table. */
+export interface FieldFind {
+  slug: string;
+  label: string;
+  material: string; // MaterialId
+  plastic: 'yes' | 'partly' | 'no' | 'unsure';
+  parts: string;
+  firstAt: number;
+  refused: number;
+  reused: number;
+  used: number;
 }
 
 export type GroupKind = 'class' | 'household';

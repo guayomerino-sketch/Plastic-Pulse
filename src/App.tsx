@@ -37,6 +37,7 @@ export default function App() {
   const [entered, setEntered] = useState(false);
   const [screen, setScreen] = useState<ScreenId>('pulse');
   const [scanId, setScanId] = useState<string | null>(null);
+  const [pitchSeed, setPitchSeed] = useState<string | null>(null);
   const [bookId, setBookId] = useState<string | null>(null);
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [lyric, setLyric] = useState<string | null>(null);
@@ -123,7 +124,7 @@ export default function App() {
     }
   };
 
-  const go = (id: ScreenId) => { setScreen(id); window.scrollTo?.(0, 0); };
+  const go = (id: ScreenId) => { if (id !== 'solutions') setPitchSeed(null); setScreen(id); window.scrollTo?.(0, 0); };
 
   // Earth's live vital signs on the globe.
   const focusEarth = useCallback((p: [number, number] | null) => worldRef.current?.focus(p ? p[0] : null, p ? p[1] : 0), []);
@@ -176,13 +177,13 @@ export default function App() {
 
       <main className="content">
         {screen === 'pulse' && <Pulse onChoice={onChoice} onOpenProblem={() => go('solutions')} />}
-        {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} />}
+        {screen === 'scan' && <Scan initialId={scanId ?? currentProblem().specimenId} onToLab={() => go('lab')} onPitch={(label) => { setPitchSeed(label); go('solutions'); }} />}
         {screen === 'lab' && <Lab />}
-        {screen === 'solutions' && <Solutions googleUid={account.account?.kind === 'google' ? account.account.uid : null} />}
+        {screen === 'solutions' && <Solutions key={pitchSeed ?? 'lab'} seed={pitchSeed} googleUid={account.account?.kind === 'google' ? account.account.uid : null} />}
         {screen === 'world' && <World onYou={() => go('you')} onFocus={focusEarth} onZoomOut={zoomOut} onVitals={showVitals} onLights={showLights} />}
         {screen === 'feedback' && <Feedback onDone={() => go('you')} />}
         {screen === 'you' && <You account={account} classCode={state.group ? '' : classCode} onFeedback={() => go('feedback')} />}
-        {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} />}
+        {screen === 'book' && <Book key={bookId ?? 'book'} initialId={bookId} onScan={() => { setScanId(null); go('scan'); }} onPitch={(label) => { setPitchSeed(label); go('solutions'); }} />}
       </main>
 
       <nav className="nav glass" aria-label="Main">

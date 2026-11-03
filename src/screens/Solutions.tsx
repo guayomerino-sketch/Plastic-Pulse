@@ -11,12 +11,13 @@ const EMPTY: IdeaForm = { title: '', problem: '', idea: '', evidence: '' };
  * Solution Lab: players pitch ideas for the problem of the week. Ideas appear right away (in the class,
  * or for the community); players vote; teachers and the moderator can hide an idea afterwards.
  */
-export default function Solutions({ googleUid }: { googleUid: string | null }) {
+export default function Solutions({ googleUid, seed }: { googleUid: string | null; seed?: string | null }) {
   const { state, dispatch } = useGame();
   const problem = currentProblem();
   const group = state.group;
-  const [form, setForm] = useState<IdeaForm>(EMPTY);
-  const [open, setOpen] = useState(false);
+  // From a Field find: start a pitch about that real object.
+  const [form, setForm] = useState<IdeaForm>(seed ? { ...EMPTY, problem: `The ${seed} I scanned: ` } : EMPTY);
+  const [open, setOpen] = useState(Boolean(seed));
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState('');
   const [error, setError] = useState('');

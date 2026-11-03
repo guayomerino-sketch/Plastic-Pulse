@@ -1,10 +1,12 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { SPECIMENS } from '../src/data/specimens.js';
+import { isMaterialId, type MaterialId } from '../src/data/materials.js';
 
 /**
  * AI photo scanner, server side. The Gemini key lives only in Vercel's environment (GEMINI_API_KEY).
- * Gemini only chooses which of our sourced specimens is in the photo; every fact and number the
- * player sees still comes from specimens.ts, never from the AI.
+ * Gemini names any item and guesses its plastic family. If it matches one of our sourced specimens,
+ * the player gets that Specimen File; otherwise a "Field find" with facts from our sourced materials
+ * table. Every fact and number the player sees comes from our data, never from the AI.
  *
  * Cost: use a key from a Google project without billing. Then it can never be charged; when the
  * free allowance runs out, Gemini answers 429 and the game asks the player to pick by hand.
@@ -14,9 +16,17 @@ const PROJECT = 'plasticpulse-a921c';
 // Flash-Lite first: fast, less in demand, and plenty to tell a bottle from a tea bag. Others are fallbacks.
 const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash-lite'];
-const PER_PLAYER_PER_HOUR = 20;
+const PER_PLAYER_PER_HOUR = 30; // room to explore; Gemini's free daily limit is the real cap
 
-export interface ScanAnswer { specimenId: string | null; label: string; confidence: number }
+export type PlasticVerdict = 'yes' | 'partly' | 'no' | 'unsure';
+export interface ScanAnswer {
+  specimenId: string | null; // one of our sourced specimens, or null
+  label: string; // what the item is, in a few words
+  confidence: number;
+  plastic: PlasticVerdict; // is it plastic?
+  material: MaterialId; // its main plastic family
+  parts: string; // short note on which parts are plastic, e.g. "cap PP, carton paper with plastic lining"
+}
 export class ScanError extends Error { constructor(public status: number, public code: string, public detail = '') { super(code); } }
 
 const jwks = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
@@ -49,12 +59,18 @@ export async function identify(uid: string, image: unknown): Promise<ScanAnswer>
   rateLimit(uid);
 
   const list = SPECIMENS.map((s) => `- ${s.id}: ${s.name} (${s.polymer})`).join('\n');
-  const prompt = `You help young people identify everyday plastic items in a science game.
-Look at the photo and decide which ONE item from this list is the main object:
+  const prompt = `You help young people identify everyday objects and the plastic in them, in a science game.
+Look at the main object in the photo.
+1. label: what it is, at most 6 plain words (e.g. "milk carton with plastic cap").
+2. specimenId: if it is one of these items, its id, otherwise null:
 ${list}
-If none of them fits, use null for specimenId.
-Answer with: specimenId (an id from the list, or null), label (what the object is, at most 6 plain words),
-confidence (0 to 1). Do not describe people, places or anything else in the photo.`;
+3. plastic: "yes" if mostly plastic, "partly" if it has plastic parts or layers, "no" if no plastic, "unsure".
+4. material: the main plastic family: PET, HDPE, PVC, LDPE, PP, PS, OTHER (any other plastic),
+   MULTILAYER (fused layers such as plastic-lined paper or metallised film), NONE (no plastic), UNKNOWN.
+   If a recycling number in a triangle is visible, use it (1 PET, 2 HDPE, 3 PVC, 4 LDPE, 5 PP, 6 PS, 7 OTHER).
+5. parts: at most 12 words on which parts are plastic and which are not.
+6. confidence: 0 to 1.
+Only describe the object. Never describe people, faces, places, text about people or anything private.`;
 
   // Try the main model, then lighter ones when Google is busy (503), overloaded (500) or a name changed (404).
   const models = [...new Set([MODEL, ...FALLBACK_MODELS])];
@@ -74,8 +90,13 @@ confidence (0 to 1). Do not describe people, places or anything else in the phot
           responseMimeType: 'application/json',
           responseSchema: {
             type: 'OBJECT',
-            properties: { specimenId: { type: 'STRING', nullable: true }, label: { type: 'STRING' }, confidence: { type: 'NUMBER' } },
-            required: ['specimenId', 'label', 'confidence'],
+            properties: {
+              specimenId: { type: 'STRING', nullable: true }, label: { type: 'STRING' }, confidence: { type: 'NUMBER' },
+              plastic: { type: 'STRING', enum: ['yes', 'partly', 'no', 'unsure'] },
+              material: { type: 'STRING', enum: ['PET', 'HDPE', 'PVC', 'LDPE', 'PP', 'PS', 'OTHER', 'MULTILAYER', 'NONE', 'UNKNOWN'] },
+              parts: { type: 'STRING' },
+            },
+            required: ['specimenId', 'label', 'confidence', 'plastic', 'material', 'parts'],
           },
         },
       }),
@@ -99,9 +120,14 @@ confidence (0 to 1). Do not describe people, places or anything else in the phot
   let out: Partial<ScanAnswer> = {};
   try { out = JSON.parse(text); } catch { throw new ScanError(502, 'unreadable-answer'); }
   const known = SPECIMENS.some((s) => s.id === out.specimenId);
+  const clean = (t: unknown, max: number) => String(t ?? '').replace(/[^\p{L}\p{N} '’,.()/+-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, max);
+  const verdicts: PlasticVerdict[] = ['yes', 'partly', 'no', 'unsure'];
   return {
     specimenId: known ? (out.specimenId as string) : null,
-    label: String(out.label ?? 'Unknown item').replace(/[^\p{L}\p{N} '’,.-]/gu, '').slice(0, 60) || 'Unknown item',
+    label: clean(out.label, 60) || 'Unknown item',
     confidence: Math.max(0, Math.min(1, Number(out.confidence) || 0)),
+    plastic: verdicts.includes(out.plastic as PlasticVerdict) ? (out.plastic as PlasticVerdict) : 'unsure',
+    material: isMaterialId(out.material) ? out.material : 'UNKNOWN',
+    parts: clean(out.parts, 100),
   };
 }

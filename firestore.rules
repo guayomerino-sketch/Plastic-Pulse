@@ -156,6 +156,19 @@ service cloud.firestore {
       }
     }
 
+    // Anonymous tally of scanned items that aren't in the Specimen Book yet (label and material only,
+    // never a photo or player id). Players can only add one at a time; only moderators read it.
+    match /scanTally/{slug} {
+      allow read: if isAdmin();
+      allow create: if signedIn() && slug.matches('^[a-z0-9-]{1,50}$')
+        && request.resource.data.keys().hasOnly(['label', 'material', 'count'])
+        && request.resource.data.count == 1
+        && request.resource.data.label is string && request.resource.data.label.size() >= 1 && request.resource.data.label.size() <= 60
+        && noContact(request.resource.data.label) && noBadWords(request.resource.data.label)
+        && request.resource.data.material in ['PET', 'HDPE', 'PVC', 'LDPE', 'PP', 'PS', 'OTHER', 'MULTILAYER', 'NONE', 'UNKNOWN'];
+      allow update: if signedIn() && onlyChanged(['count']) && request.resource.data.count == resource.data.count + 1;
+    }
+
     // City lights on the globe: lights/{week}/cities/{key}, e.g. key "US-los-angeles".
     // A city grows only together with a player's own capped part of the world goal (same batch).
     // Only a rough city is stored (from /api/where): never a player id, GPS or anything personal.

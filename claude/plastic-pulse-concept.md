@@ -62,10 +62,11 @@ Working notes for Claude sessions. Rules and tone live in `CLAUDE.md`; how the g
 - Left: rebuild `src/screens/Solutions.tsx` on the service (pitch → review → vote, review queues for moderator and teachers), test in the emulators, deploy rules, add Eduardo's uid to `admins/` in the Firebase console.
 - Done: decluttered World → Our choices; account, class, sharing and feedback moved to the You page (profile button in the top bar). Class join links open You.
 
-## Next session (from Eduardo, 3 Nov 2026)
-- Scanner didn't recognise the plastic from a milk carton: by design it only picks one of the 15 sourced specimens.
-  Plan: (1) source common household items next (milk/juice cartons with PE lining and HDPE/PP cap, yogurt pots,
-  cling film, detergent bottles, sandwich bags, clamshells); (2) for anything else, Gemini returns a material family
-  (resin code) → a "mystery plastic" entry with XP but no invented facts or grams; (3) anonymous tally of unmatched
-  scan labels (label only, never photo or player) to choose what to source next.
-- Then households (groups with kind 'household', family goal).
+## Scanner: scan anything (3 Nov 2026)
+- Eduardo: limiting the scanner to 15 items made it useless. Now Gemini names any item, says whether it's plastic,
+  its family (resin code, or MULTILAYER/NONE/UNKNOWN) and which parts are plastic. Our 15 specimens still get their
+  full Specimen File; everything else becomes a Field find with facts from `src/data/materials.ts` (sourced:
+  ASTM D7611 and a county recycling guide). Field finds: +10 XP the first time, log refuse/reuse/use for XP
+  (no grams: masses aren't sourced), collected in the Book, and "Pitch a real-life solution" opens the Solution Lab.
+- Anonymous `scanTally/{slug}` (label + material + count, moderator-only read) shows what to source next.
+- Next: source the most-scanned items as full specimens; households.
