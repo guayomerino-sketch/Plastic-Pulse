@@ -6,6 +6,7 @@ import { dateLabel, useVitals } from '../vitals/useVitals';
 import { REEF_LEVELS, type Source, type Vitals } from '../vitals/types';
 import type { useAccount } from '../services/account';
 import ClassCard from '../components/ClassCard';
+import ShareButton from '../components/ShareButton';
 
 type AccountApi = ReturnType<typeof useAccount>;
 
@@ -190,7 +191,8 @@ function Us({ account, classCode, onFeedback }: { account: AccountApi; classCode
       {live && live.mine >= MAX_GRAMS_PER_PLAYER_WEEK && <div className="tag">You’ve added this week’s maximum of {mass(MAX_GRAMS_PER_PLAYER_WEEK)} to the shared goal. Your choices still count for your biome.</div>}
       {goal.state === 'offline' && <div className="tag">The shared goal needs a connection. Your choices still count on this device.</div>}
       <div className="tag">Each light on Earth is a community of players · city lights are sample data for now</div>
-      <button className="btn ghost-violet" onClick={onFeedback}>Tell us what you think</button>
+      <ShareButton label="Share my field report" />
+      <button className="btn ghost" onClick={onFeedback}>Tell us what you think</button>
     </>
   );
 }

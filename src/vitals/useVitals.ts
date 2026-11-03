@@ -5,16 +5,22 @@ export type VitalsStatus = { state: 'loading' } | { state: 'error' } | { state: 
 
 let cached: Promise<Vitals> | null = null;
 
-/** Earth's vital signs from /api/vitals, fetched once per visit. */
+/** Earth's vital signs from /api/vitals, fetched once per visit (shared by the World screen and share cards). */
+export function loadVitals(): Promise<Vitals> {
+  cached ??= fetch('/api/vitals', { signal: AbortSignal.timeout(30_000) }).then((r) => {
+    if (!r.ok) throw new Error(`vitals: HTTP ${r.status}`);
+    return r.json() as Promise<Vitals>;
+  });
+  cached.catch(() => { cached = null; });
+  return cached;
+}
+
+/** Earth's vital signs as React state. */
 export function useVitals(): VitalsStatus {
   const [status, setStatus] = useState<VitalsStatus>({ state: 'loading' });
   useEffect(() => {
     let alive = true;
-    cached ??= fetch('/api/vitals', { signal: AbortSignal.timeout(30_000) }).then((r) => {
-      if (!r.ok) throw new Error(`vitals: HTTP ${r.status}`);
-      return r.json() as Promise<Vitals>;
-    });
-    cached.then((vitals) => alive && setStatus({ state: 'ok', vitals })).catch(() => { cached = null; if (alive) setStatus({ state: 'error' }); });
+    loadVitals().then((vitals) => alive && setStatus({ state: 'ok', vitals })).catch(() => { if (alive) setStatus({ state: 'error' }); });
     return () => { alive = false; };
   }, []);
   return status;

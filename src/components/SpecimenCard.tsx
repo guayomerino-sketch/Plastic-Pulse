@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Specimen } from '../types';
 import Hologram from './Hologram';
+import ShareButton from './ShareButton';
 
 /** Field-notebook "Specimen File" for one plastic. Every figure is sourced. */
 export default function SpecimenCard({ s, number }: { s: Specimen; number: number }) {
@@ -34,9 +35,12 @@ export default function SpecimenCard({ s, number }: { s: Specimen; number: numbe
           ))}
         </ul>
       )}
-      <button className="sp-toggle" onClick={() => setShowSources((v) => !v)}>
-        {showSources ? 'Hide sources' : 'How we know this → sources'}
-      </button>
+      <div className="row">
+        <button className="sp-toggle" onClick={() => setShowSources((v) => !v)}>
+          {showSources ? 'Hide sources' : 'How we know this → sources'}
+        </button>
+        <ShareButton specimenId={s.id} label="Share this specimen" />
+      </div>
     </article>
   );
 }

@@ -308,6 +308,8 @@ textarea, input { width: 100%; margin-top: 6px; background: rgba(0, 0, 0, 0.3); 
 .hidden-note { padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); border: 1px dashed var(--glass-line); }
 .teacher-ideas { padding-top: 6px; }
 
+.share-btn { min-height: 44px; }
+
 /* world */
 .path { display: flex; gap: 4px; margin-top: 2px; }
 .path-step { flex: 1; display: flex; flex-direction: column; gap: 5px; text-align: center; font: 500 10px var(--display); color: var(--muted); }
